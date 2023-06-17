@@ -23,4 +23,4 @@ Install (irc)[https://pypi.org/project/irc/]
   - !merge somenick someothernick (Moves somenick's ducks to someothernick's ducks
   - !ducklines 483 (sets the amount of lines a duck will spawn at. If no parameter is sent, it shows the current setting)
   - !misschance 0-100 (sets the chance of missing a shot or a.. befriending)
-
+  - !duckdown (kills the bot)
