@@ -2,7 +2,8 @@
 A simple DuckHunt IRC bot, simular to Gonzobot's but coded from scratch.
 
 # Dependencies
-Install (irc)[https://pypi.org/project/irc/]
+ * Python3.7 or above (probably)
+ * Install [irc](https://pypi.org/project/irc/)
 
 # Set up and running
 
@@ -21,6 +22,6 @@ Install (irc)[https://pypi.org/project/irc/]
 
 - Duckops commands
   - !merge somenick someothernick (Moves somenick's ducks to someothernick's ducks
-  - !ducklines 483 (sets the amount of lines a duck will spawn at. If no parameter is sent, it shows the current setting)
+  - !ducklines N  (sets the amount of lines a duck will spawn at to N lines. If no parameter is sent, it shows the current setting)
   - !misschance 0-100 (sets the chance of missing a shot or a.. befriending)
   - !duckdown (kills the bot)
