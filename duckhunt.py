@@ -146,7 +146,7 @@ def on_pubmsg(connection, event):
             rand = random.randrange(1,100)
             if rand < MISS_CHANCE:
                 response = random_response(msg[0], shooter)
-                connection.privmsg(channel, response)
+                connection.privmsg(channel, "MISS! " + response)
                 missed[shooter] = round(time.time(),0)
                 scoreboard["stats"][cmd + "missed"] += 1
                 scoreboard["stats"]["totalmissed"] += 1
