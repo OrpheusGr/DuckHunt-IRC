@@ -50,6 +50,7 @@ def save_scores():
 
 def add_score(shooter, cmd, score):
     global scoreboard
+    shooter = shooter.lower()
     if shooter not in scoreboard["!bang"]:
         scoreboard["!bang"][shooter] = 0
     if shooter not in scoreboard["!bef"]:
@@ -63,6 +64,7 @@ def add_score(shooter, cmd, score):
 
 def del_score(player):
     global scoreboard
+    player = player.lower()
     scoreboard["!bang"].pop(player)
     scoreboard["!bef"].pop(player)
     time.sleep(2)
@@ -95,6 +97,8 @@ def inbold(s):
 
 def on_connectbot(connection, event):
     print("Connection successfull")
+    connection.privmsg("NickServ", "identify OrcBots TheOrcBots7890")
+    time.sleep(2)
     connection.join(CHANNEL)
 
 def on_nicknameinuse(connection, event):
@@ -138,19 +142,20 @@ def on_pubmsg(connection, event):
         word = get_word(cmd)
         if theresaduck:
             shooter = event.source.nick
-            if shooter in missed:
+            shooter_lower = shooter.lower()
+            if shooter_lower in missed:
                 timemiss = round(time.time(), 0)
-                timemissdiff = timemiss - missed[shooter]
+                timemissdiff = timemiss - missed[shooter_lower]
                 if timemissdiff < 7:
                     return
             rand = random.randrange(1,100)
             if rand < MISS_CHANCE:
                 response = random_response(msg[0], shooter)
                 connection.privmsg(channel, "MISS! " + response)
-                missed[shooter] = round(time.time(),0)
+                missed[shooter_lower] = round(time.time(),0)
                 scoreboard["stats"][cmd + "missed"] += 1
                 scoreboard["stats"]["totalmissed"] += 1
-                cmdshootermissed = cmd + shooter + "missed"
+                cmdshootermissed = cmd + shooter_lower + "missed"
                 if not cmdshootermissed in scoreboard["stats"]:
                      scoreboard["stats"][cmdshootermissed] = 0
                 scoreboard["stats"][cmdshootermissed] += 1
@@ -159,8 +164,8 @@ def on_pubmsg(connection, event):
             timeshot = time.time()
             theresaduck = 0
             timediff = round(timeshot - ducktime, 3)
-            add_score(shooter, cmd, 1)
-            score = scoreboard[cmd][shooter]
+            add_score(shooter_lower, cmd, 1)
+            score = scoreboard[cmd][shooter_lower]
             missed = {}
             connection.privmsg(channel, "Congrats " + shooter + " you " + word["past"] + " the duck in " + str(timediff) + " seconds! You have " + word["past"] + " " + str(score) + " ducks in " +  channel + ".")
         else:
@@ -186,9 +191,9 @@ def on_pubmsg(connection, event):
          bang = scoreboard["!bang"]
          bef = scoreboard["!bef"]
          if len(msg) == 1:
-             nick = event.source.nick
+             nick = event.source.nick.lower()
          else:
-             nick = msg[1]
+             nick = msg[1].lower()
          bangshootermissed = "!bang" + nick + "missed"
          if not bangshootermissed in scoreboard["stats"]:
               nickbangmissed = 0
@@ -214,25 +219,27 @@ def on_pubmsg(connection, event):
         x = {k: v for k, v in sorted(scoreboard["!bang"].items(), key=lambda item: item[1], reverse=True)}
         for p in x:
             if x[p] > 0:
-                s += "\x02" + p + "\x0f: " + str(x[p]) + " "
+                s += inbold(scoreboard["real_nicks"][p] + ": ") + str(x[p]) + " "
         connection.privmsg(channel, "Killers in " + channel + ": " + s)
     elif msg[0] == "!friends":
         s = ""
         x = {k: v for k, v in sorted(scoreboard["!bef"].items(), key=lambda item: item[1], reverse=True)}
         for p in x:
             if x[p] > 0:
-                s += "\x02" + p + "\x0f: " + str(x[p]) + " "
+                s += inbold(scoreboard["real_nicks"][p] + ": ") + str(x[p]) + " "
         connection.privmsg(channel, "Friends in " + channel + ": " + s)
     elif msg[0] == "!ducks":
         if len(msg) == 1:
             whoseducks = event.source.nick
+            whoseducks_lower = whoseducks.lower()
             wordduck = ", you have"
         else:
             whoseducks = msg[1]
+            whoseducks_lower = whoseducks.lower()
             wordduck = " has"
-        if whoseducks in scoreboard["!bang"]:
-            killed = scoreboard["!bang"][whoseducks]
-            friended = scoreboard["!bef"][whoseducks]
+        if whoseducks_lower in scoreboard["!bang"]:
+            killed = scoreboard["!bang"][whoseducks_lower]
+            friended = scoreboard["!bef"][whoseducks_lower]
             if killed > 0 or friended > 0:
                 connection.privmsg(channel, whoseducks + wordduck + " killed " + str(killed) + " and befriended " + str(friended) + " ducks in " + channel)
             else:
@@ -260,17 +267,22 @@ def on_pubmsg(connection, event):
                 return
             tomovebang = 0
             tomovebef = 0
-            if msg[1] in scoreboard["!bang"]:
-                tomovebang = scoreboard["!bang"][msg[1]]
-                add_score(msg[2], "!bang", tomovebang)
-                tomovebef = scoreboard["!bef"][msg[1]]
-                add_score(msg[2], "!bef", tomovebef)
-                del_score(msg[1])
+            nickmergefrom = msg[1].lower()
+            nickmergeto = msg[2].lower()
+            if nickmergefrom in scoreboard["!bang"]:
+                tomovebang = scoreboard["!bang"][nickmergefrom]
+                add_score(nickmergeto, "!bang", tomovebang)
+                tomovebef = scoreboard["!bef"][nickmergefrom]
+                add_score(nickmergeto, "!bef", tomovebef)
+                del_score(nickmergefrom)
                 connection.privmsg(channel, "Moved " + str(tomovebang) + " dead ducks and " + str(tomovebef) + " befriended ducks from " + msg[1] + " to " + msg[2])
             else:
                 connection.privmsg(channel, msg[1] + ": No such nick in my scoreboard.")
         elif msg[0] == "!misschance":
-            if len(msg) == 1 or msg[1].isnumeric() == False or (msg[1].isnumeric() == True and int(msg[1]) not in range(1,101)):
+            if len(msg) == 1:
+                connection.privmsg(channel, "Current Miss chance is: %s" % MISS_CHANCE)
+                return
+            if msg[1].isnumeric() == False or (msg[1].isnumeric() == True and int(msg[1]) not in range(1,101)):
                 connection.privmsg(channel, "Usage: !misschance " + str(random.randrange(1,100)))
                 return
             MISS_CHANCE = int(msg[1])
