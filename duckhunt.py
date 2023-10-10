@@ -23,6 +23,10 @@ if "!bang" not in scoreboard:
     scoreboard["!bang"] = {}
 if "!bef" not in scoreboard:
     scoreboard["!bef"] = {}
+if "!bangmissed" not in scoreboard["stats"]:
+    scoreboard["stats"]["!bangmissed"] = {}
+if "!befmissed" not in scoreboard["stats"]:
+    scoreboard["stats"]["!befmissed"] = {}
 
 def stoploop():
     global loopin
