@@ -19,6 +19,7 @@ missed = {}
 if os.path.isfile("duckhunt.pkl") == False:
     open("duckhunt.pkl", 'w').close()
 
+scoreboard["stats"] = {}
 if "!bang" not in scoreboard:
     scoreboard["!bang"] = {}
 if "!bef" not in scoreboard:
