@@ -25,9 +25,9 @@ if "!bang" not in scoreboard:
 if "!bef" not in scoreboard:
     scoreboard["!bef"] = {}
 if "!bangmissed" not in scoreboard["stats"]:
-    scoreboard["stats"]["!bangmissed"] = {}
+    scoreboard["stats"]["!bangmissed"] = 0
 if "!befmissed" not in scoreboard["stats"]:
-    scoreboard["stats"]["!befmissed"] = {}
+    scoreboard["stats"]["!befmissed"] = 0
 
 def stoploop():
     global loopin
@@ -85,15 +85,22 @@ def load_scores():
         DUCKLINES_TARGET = scoreboard["ducklines"]
     if "MISS_CHANCE" in scoreboard:
         MISS_CHANCE = scoreboard["MISS_CHANCE"]
+    if "!bang" not in scoreboard:
+        scoreboard["!bang"] = {}
+    if "!bef" not in scoreboard:
+        scoreboard["!bef"] = {}
+    if "!bangmissed" not in scoreboard["stats"]:
+        scoreboard["stats"]["!bangmissed"] = 0
+    if "!befmissed" not in scoreboard["stats"]:
+        scoreboard["stats"]["!befmissed"] = 0
     if "stats" not in scoreboard:
         scoreboard["stats"] = {}
-        scoreboard["stats"]["totalmissed"] = 0
-        scoreboard["stats"]["!bangmissed"] = 0
-        scoreboard["stats"]["!befmissed"] = 0
-        scoreboard["stats"]["total!bang"] = 0
-        scoreboard["stats"]["total!bef"] = 0
-        save_scores()
-        time.sleep(1)
+    x = ["totalmissed", "!bangmissed", "!befmissed", "total!bang", "total!bef"]
+    for i in x:
+        if i not in scoreboard["stats"]:
+            scoreboard["stats"][i] = 0
+    save_scores()
+    time.sleep(1)
     print("Scores loaded!")
     print(scoreboard)
 
@@ -142,12 +149,13 @@ def on_pubmsg(connection, event):
         msg[0] = "!bef"
     bangbef = ["!bang", "!bef"]
     conds = [msg[0] == "!bang", msg[0] == "!bef"]
+    shooter = event.source.nick
+    shooter_lower = shooter.lower()
     if any(conds):
+        scoreboard["real_nicks"][shooter_lower] = shooter
         cmd = bangbef[conds.index(True)]
         word = get_word(cmd)
         if theresaduck:
-            shooter = event.source.nick
-            shooter_lower = shooter.lower()
             if shooter_lower in missed:
                 timemiss = round(time.time(), 0)
                 timemissdiff = timemiss - missed[shooter_lower]
@@ -176,6 +184,7 @@ def on_pubmsg(connection, event):
         else:
             connection.privmsg(channel, "There is no duck to " +  word["present"])
     if msg[0] == "!allstats":
+        scoreboard["real_nicks"][shooter_lower] = shooter
         stats = scoreboard["stats"]
         if "!bangmissed" not in stats:
              bangmissed = 0
@@ -192,6 +201,7 @@ def on_pubmsg(connection, event):
         statsline = "%s: %s | %s: %s | %s: %s | %s: %s | %s: %s"  % (inbold("Successful shots"), scoreboard["stats"]["total!bang"], inbold("Succesful friendsips"), scoreboard["stats"]["total!bef"], inbold("Missed shots"), bangmissed, inbold("Missed friendships"), befmissed, inbold("Total missed"), totalmissed)
         connection.privmsg(channel, statsline)
     elif msg[0] == "!stats":
+         scoreboard["real_nicks"][shooter_lower] = shooter
          stats = scoreboard["stats"]
          bang = scoreboard["!bang"]
          bef = scoreboard["!bef"]
@@ -220,6 +230,7 @@ def on_pubmsg(connection, event):
          statsline = "%s stats: %s: %s | %s: %s | %s: %s | %s: %s" % (nick, inbold("Successful shots"), nickbanged, inbold("Successful friendships"), nickbefed, inbold("Missed shots"), nickbangmissed, inbold("Missed friendships"), nickbefmissed)
          connection.privmsg(channel, statsline)
     elif msg[0] == "!killers":
+        scoreboard["real_nicks"][shooter_lower] = shooter
         s = ""
         x = {k: v for k, v in sorted(scoreboard["!bang"].items(), key=lambda item: item[1], reverse=True)}
         for p in x:
@@ -227,6 +238,7 @@ def on_pubmsg(connection, event):
                 s += inbold(scoreboard["real_nicks"][p] + ": ") + str(x[p]) + " "
         connection.privmsg(channel, "Killers in " + channel + ": " + s)
     elif msg[0] == "!friends":
+        scoreboard["real_nicks"][shooter_lower] = shooter
         s = ""
         x = {k: v for k, v in sorted(scoreboard["!bef"].items(), key=lambda item: item[1], reverse=True)}
         for p in x:
@@ -234,6 +246,7 @@ def on_pubmsg(connection, event):
                 s += inbold(scoreboard["real_nicks"][p] + ": ") + str(x[p]) + " "
         connection.privmsg(channel, "Friends in " + channel + ": " + s)
     elif msg[0] == "!ducks":
+        scoreboard["real_nicks"][shooter_lower] = shooter
         if len(msg) == 1:
             whoseducks = event.source.nick
             whoseducks_lower = whoseducks.lower()
@@ -275,6 +288,8 @@ def on_pubmsg(connection, event):
             nickmergefrom = msg[1].lower()
             nickmergeto = msg[2].lower()
             if nickmergefrom in scoreboard["!bang"]:
+                scoreboard["real_nicks"][nickmergefrom] = msg[1]
+                scoreboard["real_nicks"][nickmergeto] = msg[2]
                 tomovebang = scoreboard["!bang"][nickmergefrom]
                 add_score(nickmergeto, "!bang", tomovebang)
                 tomovebef = scoreboard["!bef"][nickmergefrom]
