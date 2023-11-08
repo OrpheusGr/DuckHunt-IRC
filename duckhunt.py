@@ -5,6 +5,7 @@ import pickle
 import random
 from settings import *
 from responses import *
+import thetimers
 reactor = irc.client.Reactor()
 irc.client.ServerConnection.buffer_class.encoding = "UTF-8"
 irc.client.ServerConnection.buffer_class.errors = "replace"
@@ -108,8 +109,16 @@ def inbold(s):
     return "\x02" + s + "\x02"
 
 def on_connectbot(connection, event):
+    identify_cmd = ""
     print("Connection successfull")
-    connection.privmsg("NickServ", "identify OrcBots TheOrcBots7890")
+    if NICKSERV_IDENTIFY == True:
+        if NICKSERV_PASS == "":
+            return
+        if NICKSERV_ACCOUNT != "":
+            identify_cmd = "IDENTIFY %s %s" % (NICKSERV_ACCOUNT, NICKSERV_PASS)
+        else:
+            identify_cmd = "IDENTIFY %s" % NICKSERV_PASS
+        connection.privmsg(NICKSERV_NAME, identify_cmd)
     time.sleep(2)
     connection.join(CHANNEL)
 
@@ -123,6 +132,13 @@ def on_join(connection, event):
     if connection.get_nickname() == event.source.nick:
         print("Joined", event.target)
         connection.privmsg(event.target, "The DuckHunt Begins!")
+
+def fly_away(con):
+    global theresaduck
+    global ducktime
+    theresaduck = 0
+    ducktime = 0
+    con.privmsg(CHANNEL, "The duck flew away to another channel... ・゜゜・。 ​ 。・゜゜\_ø<​ FLAP flap ....lap")
 
 def on_pubmsg(connection, event):
     global theresaduck
@@ -144,6 +160,8 @@ def on_pubmsg(connection, event):
         ducklines = 0
         ducktime = time.time()
         connection.privmsg(channel, "・゜゜・。 ​ 。・゜゜\_ø<​ FLAP F​LAP!")
+        if FLYAWAY_TIME > 0:
+            thetimers.add_timer("fly_away", FLYAWAY_TIME, fly_away, connection)
         return
     if msg[0] == "!befriend":
         msg[0] = "!bef"
@@ -334,6 +352,7 @@ def startloop():
     time.sleep(2)
     while loopin:
         reactor.process_once(0.2)
+        thetimers.check_timers()
         time.sleep(0.2)
 
 startloop()

@@ -25,3 +25,8 @@ A simple DuckHunt IRC bot, simular to Gonzobot's but coded from scratch.
   - !ducklines N  (sets the amount of lines a duck will spawn at to N lines. If no parameter is sent, it shows the current setting)
   - !misschance 0-100 (sets the chance of missing a shot or a.. befriending)
   - !duckdown (kills the bot)
+
+- Extra feats
+  - NickServ identification
+  - You can have the duck fly away after a period of time you choose
+
