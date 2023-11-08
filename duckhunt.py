@@ -112,13 +112,12 @@ def on_connectbot(connection, event):
     identify_cmd = ""
     print("Connection successfull")
     if NICKSERV_IDENTIFY == True:
-        if NICKSERV_PASS == "":
-            return
-        if NICKSERV_ACCOUNT != "":
-            identify_cmd = "IDENTIFY %s %s" % (NICKSERV_ACCOUNT, NICKSERV_PASS)
-        else:
-            identify_cmd = "IDENTIFY %s" % NICKSERV_PASS
-        connection.privmsg(NICKSERV_NAME, identify_cmd)
+        if NICKSERV_PASS != "":
+            if NICKSERV_ACCOUNT != "":
+                identify_cmd = "IDENTIFY %s %s" % (NICKSERV_ACCOUNT, NICKSERV_PASS)
+            else:
+                identify_cmd = "IDENTIFY %s" % NICKSERV_PASS
+            connection.privmsg(NICKSERV_NAME, identify_cmd)
     time.sleep(2)
     connection.join(CHANNEL)
 
@@ -131,7 +130,8 @@ def on_nicknameinuse(connection, event):
 def on_join(connection, event):
     if connection.get_nickname() == event.source.nick:
         print("Joined", event.target)
-        connection.privmsg(event.target, "The DuckHunt Begins!")
+        if event.target == CHANNEL:
+            connection.privmsg(event.target, "The DuckHunt Begins!")
 
 def fly_away(con):
     global theresaduck
@@ -180,7 +180,7 @@ def on_pubmsg(connection, event):
                 if timemissdiff < 7:
                     return
             rand = random.randrange(1,100)
-            if rand < MISS_CHANCE:
+            if rand < MISS_CHANCE and shooter_lower not in missed:
                 response = random_response(msg[0], shooter)
                 connection.privmsg(channel, "MISS! " + response)
                 missed[shooter_lower] = round(time.time(),0)
@@ -198,6 +198,7 @@ def on_pubmsg(connection, event):
             add_score(shooter_lower, cmd, 1)
             score = scoreboard[cmd][shooter_lower]
             missed = {}
+            thetimers.cancel_timer("fly_away")
             connection.privmsg(channel, "Congrats " + shooter + " you " + word["past"] + " the duck in " + str(timediff) + " seconds! You have " + word["past"] + " " + str(score) + " ducks in " +  channel + ".")
         else:
             connection.privmsg(channel, "There is no duck to " +  word["present"])
