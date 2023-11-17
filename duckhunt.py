@@ -16,6 +16,7 @@ ducklines = 0
 ducktime = 0
 scoreboard = {}
 missed = {}
+MISS_CHANCE = 0
 
 if os.path.isfile("duckhunt.pkl") == False:
     open("duckhunt.pkl", 'w').close()
@@ -79,6 +80,7 @@ def del_score(player):
 def load_scores():
     global scoreboard
     global DUCKLINES_TARGET
+    global MISS_CHANCE
     if os.path.getsize('duckhunt.pkl') > 0:
         with open('duckhunt.pkl', 'rb') as fp:
             scoreboard = pickle.load(fp)
