@@ -17,6 +17,7 @@ ducktime = 0
 scoreboard = {}
 missed = {}
 MISS_CHANCE = 0
+snipe_dir = 0
 
 if os.path.isfile("duckhunt.pkl") == False:
     open("duckhunt.pkl", 'w').close()
@@ -138,9 +139,23 @@ def on_join(connection, event):
 def fly_away(con):
     global theresaduck
     global ducktime
-    theresaduck = 0
-    ducktime = 0
-    con.privmsg(CHANNEL, "The duck flew away to another channel... ・゜゜・。 ​ 。・゜゜\_ø<​ FLAP flap ....lap")
+    global snipe_dir
+    if theresaduck == 0 or snipe_dir == 0:
+        return
+    else:
+        if theresaduck:
+            theresaduck = 0
+            ducktime = 0
+        if snipe_dir:
+            snipe_dir = 0
+        con.privmsg(CHANNEL, "The duck flew away to another channel... ・゜゜・。 ​ 。・゜゜\_ø<​ FLAP flap ....lap")
+
+def repost_duck(con, repost_time):
+    global theresaduck
+    if theresaduck == 0:
+        return
+    con.privmsg(CHANNEL, "・゜゜・。 ​ 。・゜゜\_ø<​ FLAP F​LAP!")
+    thetimers.add_timer("repost_duck", int(repost_time), repost_duck, *(con, int(repost_time)))
 
 def on_pubmsg(connection, event):
     global theresaduck
@@ -149,13 +164,14 @@ def on_pubmsg(connection, event):
     global DUCKLINES_TARGET
     global MISS_CHANCE
     global missed
+    global snipe_dir
     if len(event.arguments[0].split()) == 0:
         return
     channel = event.target
     print(event.source.nick + ":", event.arguments[0])
     msg = event.arguments[0].split()
     msg[0] = msg[0].lower()
-    if theresaduck == 0:
+    if theresaduck == 0 and snipe_dir == 0 and msg[0] not in ["!bang", "!bef", "!befriend", "!snipe", "!killers", "!friends", "!ducklines", "!ducks", "!allstats", "!misschance"]:
         ducklines += 1
     if ducklines >= DUCKLINES_TARGET and theresaduck != 1:
         theresaduck = 1
@@ -164,7 +180,48 @@ def on_pubmsg(connection, event):
         connection.privmsg(channel, "・゜゜・。 ​ 。・゜゜\_ø<​ FLAP F​LAP!")
         if FLYAWAY_TIME > 0:
             thetimers.add_timer("fly_away", FLYAWAY_TIME, fly_away, connection)
+            thetimers.add_timer("repost_duck", int((FLYAWAY_TIME+10)/6), repost_duck, *(connection, int((FLYAWAY_TIME+10)/6)))
+        else:
+            thetimers.add_timer("repost_duck", 5, repost_duck, *(connection, 5))
         return
+    if msg[0] == "!goggles":
+        if theresaduck:
+            connection.privmsg("What do you need the goggles for? There's a duck RIGHT HERE! ---> 。・゜゜\_ø<​ *QUAAAAACK QUACKQUACK*")
+            return
+        givegoggles = random.randint(1,100)
+        connection.privmsg(CHANNEL, "You look through the goggles, trying to locate a duck...")
+        if givegoggles > 60:
+            NORTH_SOUTH = ["N", "S"]
+            dir = NORTH_SOUTH[random.randint(0,1)]
+            WEST_EAST = ["W", "E"]
+            dirtwo = WEST_EAST[random.randint(0,1)]
+            true_dir = dir + dirtwo
+            random_dist = random.randint(140,300)
+            snipe_dir = true_dir + str(random_dist)
+            time.sleep(2)
+            connection.privmsg(CHANNEL, "...and you see a Duck... " + true_dir + " from here, " + str(random_dist) + "ft away! Type !snipe " + true_dir + str(random_dist))
+            thetimers.add_timer("snipe_dir", 25, fly_away, connection)
+    if msg[0] == "!snipe":
+        if snipe_dir == 0:
+            if theresaduck:
+                connection.privmsg(CHANNEL, "Why are you trying to use the sniper for a duck right next to you?? Type !bang")
+            else:
+                connection.privmsg(CHANNEL, "Yeah.. waste sniper bullets for no reason! You need to look through the goggles first!!!")
+            return
+        thetimers.cancel_timer("snipe_dir")
+        if msg[1] == snipe_dir:
+            old_snipe = snipe_dir
+            snipe_dir = 0
+            shooter = event.source.nick
+            shooter_lower = shooter.lower()
+            word = get_word("!bang")
+            cmd = "!bang"
+            add_score(shooter_lower, cmd, 1)
+            score = scoreboard[cmd][shooter_lower]
+            connection.privmsg(CHANNEL, "Congrats, " + shooter + "! You sniped the duck at " + old_snipe[0:1] + " and " + old_snipe[2:] + " ft away! You have "  + word["past"] + " " + str(score) + " ducks in " + channel + ".")
+        else:
+            snipe_dir = 0
+            connection.privmsg(CHANNEL, "FAIL! You missed the duck and it got scared away!")
     if msg[0] == "!befriend":
         msg[0] = "!bef"
     bangbef = ["!bang", "!bef"]
@@ -200,10 +257,10 @@ def on_pubmsg(connection, event):
             add_score(shooter_lower, cmd, 1)
             score = scoreboard[cmd][shooter_lower]
             missed = {}
-            thetimers.cancel_timer("fly_away")
+            #thetimers.cancel_timer("fly_away")
             connection.privmsg(channel, "Congrats " + shooter + " you " + word["past"] + " the duck in " + str(timediff) + " seconds! You have " + word["past"] + " " + str(score) + " ducks in " +  channel + ".")
         else:
-            connection.privmsg(channel, "There is no duck to " +  word["present"])
+            connection.privmsg(channel, "WTH " + shooter + "? There is no duck to " +  word["present"])
     if msg[0] == "!allstats":
         scoreboard["real_nicks"][shooter_lower] = shooter
         stats = scoreboard["stats"]

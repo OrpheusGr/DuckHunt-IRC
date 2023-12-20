@@ -19,6 +19,8 @@ A simple DuckHunt IRC bot, simular to Gonzobot's but coded from scratch.
   - !allstats (shows general game stats)
   - !stats [nick] (With a parameter it shows stats for nick, without it shows stats for the sender)
   - !ducks (shows how many ducks you killed and befriended)
+  - !goggles (60% chance of locating a duck in the distance)
+  - !snipe (using the directions from !goggles the player can snipe the located duck)
 
 - Duckops commands
   - !merge somenick someothernick (Moves somenick's ducks to someothernick's ducks
@@ -29,4 +31,5 @@ A simple DuckHunt IRC bot, simular to Gonzobot's but coded from scratch.
 - Extra feats
   - NickServ identification
   - You can have the duck fly away after a period of time you choose
-
+  - Find a duck in the distance with !goggles and !snipe it 
+  - The duck will requack when it's hasn't been shoot
