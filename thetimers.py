@@ -19,7 +19,7 @@ def check_timers():
 def add_timer(name, delay, target, *arguments):
     global timers
     if name in timers:
-        raise Exception("a timer with this name already exists")
+        raise Exception("a timer with this name: " + name + "  already exists")
         return
     currtime = time.time()
     if name == "":
@@ -28,11 +28,15 @@ def add_timer(name, delay, target, *arguments):
          raise TypeError("delay argument is expected to be int or float")
     timetodo = currtime + float(delay)
     timers[name] = {"time": timetodo, "target": target, "arguments": arguments}
+    #print("adding timer " + name)
+    #print(timers)
 
 def cancel_timer(name):
     global timers
     if name in timers:
         timers.pop(name)
+        #print("canceling timer " + name)
+        #print(timers)
     else:
         raise Exception("No timer with name " + name + " found.")
 
