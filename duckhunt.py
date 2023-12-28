@@ -152,7 +152,7 @@ def repost_duck(con, repost_time):
     global theresaduck
     if theresaduck == 0:
         return
-    con.privmsg(CHANNEL, "・゜゜・。 ​ 。・゜゜\_ø<​ FLAP F​LAP!")
+    con.privmsg(CHANNEL, ">ø_/ 。・゜・゜゜・。・゜゜・。QUAAAACK QUAAACK!")
     thetimers.add_timer("repost_duck", int(repost_time), repost_duck, *(con, int(repost_time)))
 
 def on_pubmsg(connection, event):
