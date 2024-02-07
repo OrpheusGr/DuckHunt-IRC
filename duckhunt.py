@@ -1,4 +1,5 @@
 import irc.client
+import re
 import os
 import time
 import pickle
