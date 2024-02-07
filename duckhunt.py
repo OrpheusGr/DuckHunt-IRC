@@ -52,6 +52,37 @@ def random_response(cmd, shooter):
     picked_response = cmdresponse[random.randint(0,cmdlen)] % (shooter)
     return picked_response
 
+def split_msg(msg, max_chars):
+    piece = ""
+    all_pieces = []
+    msgsplit = re.split('\s+(?=\x1d)', msg)
+    if len(msgsplit) == 1 and len(msgsplit[0]) > max_chars:
+        msgsplit = [msgsplit[0][0:max_chars], msgsplit[0][max_chars:]]
+    i = 0
+    while i < len(msgsplit):
+        if piece != "":
+            to_be_piece = piece + " " + msgsplit[i]
+        else:
+            to_be_piece = piece + msgsplit[i]
+        if len(piece) <= max_chars and len(to_be_piece) <= max_chars:
+            piece = to_be_piece
+        else:
+            if piece == "":
+                msgsplit = msgsplit[0:i-1] + [to_be_piece[0:max_chars], to_be_piece[max_chars:]] + msgsplit[i+1:]
+                piece = msgsplit[i-1]
+            all_pieces.append([piece])
+            piece = ""
+            i -= 1
+        i += 1
+    all_pieces.append([piece])
+    return all_pieces
+
+def sendmsg(connection, channel, msg):
+    msg = split_msg(msg, 470)
+    for i in range(len(msg)):
+        joint = msg[i][0]
+        connection.privmsg(channel, joint)
+
 def save_scores():
     global scoreboard
     with open('duckhunt.pkl', 'wb') as fp:
@@ -332,7 +363,7 @@ def on_pubmsg(connection, event):
         for p in x:
             if x[p] > 0:
                 s += inbold(scoreboard["real_nicks"][p] + ": ") + str(x[p]) + " "
-        connection.privmsg(channel, "Killers in " + channel + ": " + s)
+        sendmsg(connection, channel, "Killers in " + channel + ": " + s)
     elif msg[0] == "!friends":
         scoreboard["real_nicks"][shooter_lower] = shooter
         s = ""
@@ -340,7 +371,7 @@ def on_pubmsg(connection, event):
         for p in x:
             if x[p] > 0:
                 s += inbold(scoreboard["real_nicks"][p] + ": ") + str(x[p]) + " "
-        connection.privmsg(channel, "Friends in " + channel + ": " + s)
+        sendmsg(connection, channel, "Friends in " + channel + ": " + s)
     elif msg[0] == "!ducks":
         scoreboard["real_nicks"][shooter_lower] = shooter
         if len(msg) == 1:
