@@ -78,18 +78,39 @@ def split_msg(msg, max_chars):
     all_pieces.append([piece])
     return all_pieces
 
-def score_output(score_dict, decada=1):
+def score_output(score_dict, friendorfoe, decada=1):
     output = ""
+    decada = int(decada)
     if decada == 1:
         top = 9
+        topreal = 10
         low = 0
+        lowreal = 1
+        toprange = "Top10"
     else:
         top = decada * 10
+        topreal = top
         low = top - 9
-    make_a_list = list(score_dict)[low,top]
+        lowreal = low
+        toprange = "Top" + str(low) + "-" + str(top)
+    make_a_list = list(score_dict)[low:top]
+    while make_a_list == [] and top >= 20:
+        if top == 20:
+            top = 9
+        else:
+            top -= 10
+        topreal = top
+        low = top - 9
+        lowreal = low
+        if top == 9:
+            toprange = "Top10"
+        else:
+            toprange = "Top" + str(low) + "-" + str(top)
+        make_a_list = list(score_dict)[low:top]
     for i in make_a_list:
-        output += make_a_list[i] + ": ") + str(score_dict[make_a_list[i]]) + " "
-    return output
+        if score_dict[i] != 0:
+            output += inbold(scoreboard["real_nicks"][i]) + ": " + str(score_dict[i]) + " "
+    return toprange + " " + friendorfoe[1:] + " : " + output
 
 def sendmsg(connection, channel, msg):
     msg = split_msg(msg, 470)
@@ -375,11 +396,8 @@ def on_pubmsg(connection, event):
         if len(msg) > 1 and msg[1].isnumeric() == True:
             num = msg[1]
         scoreboard["real_nicks"][shooter_lower] = shooter
-        counter = 0
-        totalcounter = 0
-        s = ""
         x = {k: v for k, v in sorted(scoreboard["!bang"].items(), key=lambda item: item[1], reverse=True)}
-        the_scores = score_output(x, num)
+        the_scores = score_output(x, msg[0], num)
         sendmsg(connection, channel, the_scores)
         '''
         for p in x:
@@ -394,13 +412,19 @@ def on_pubmsg(connection, event):
                     s = ""
        '''
     elif msg[0] == "!friends":
+        num = 1
+        if len(msg) > 1 and msg[1].isnumeric() == True:
+            num = msg[1]
         scoreboard["real_nicks"][shooter_lower] = shooter
-        s = ""
         x = {k: v for k, v in sorted(scoreboard["!bef"].items(), key=lambda item: item[1], reverse=True)}
+        the_scores = score_output(x, msg[0], num)
+        sendmsg(connection, channel, the_scores)
+        '''
         for p in x:
             if x[p] > 0:
                 s += inbold(scoreboard["real_nicks"][p] + ": ") + str(x[p]) + " "
         sendmsg(connection, channel, "Friends in " + channel + ": " + s)
+        '''
     elif msg[0] == "!ducks":
         scoreboard["real_nicks"][shooter_lower] = shooter
         if len(msg) == 1:
