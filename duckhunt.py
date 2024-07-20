@@ -370,8 +370,8 @@ def on_pubmsg(connection, event):
                 totalcounter += 1
                 if (counter == 10 and len(x) >= 9) or totalcounter >= len(x):
                     counter = 0
-                    s = ""
                     sendmsg(connection, channel, "Killers in " + channel + ": " + s)
+                    s = ""
     elif msg[0] == "!friends":
         scoreboard["real_nicks"][shooter_lower] = shooter
         s = ""
