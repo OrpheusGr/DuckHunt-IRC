@@ -78,6 +78,19 @@ def split_msg(msg, max_chars):
     all_pieces.append([piece])
     return all_pieces
 
+def score_output(score_dict, decada=1):
+    output = ""
+    if decada == 1:
+        top = 9
+        low = 0
+    else:
+        top = decada * 10
+        low = top - 9
+    make_a_list = list(score_dict)[low,top]
+    for i in make_a_list:
+        output += make_a_list[i] + ": ") + str(score_dict[make_a_list[i]]) + " "
+    return output
+
 def sendmsg(connection, channel, msg):
     msg = split_msg(msg, 470)
     for i in range(len(msg)):
@@ -358,11 +371,17 @@ def on_pubmsg(connection, event):
          statsline = "%s stats: %s: %s | %s: %s | %s: %s | %s: %s" % (nick, inbold("Successful shots"), nickbanged, inbold("Successful friendships"), nickbefed, inbold("Missed shots"), nickbangmissed, inbold("Missed friendships"), nickbefmissed)
          connection.privmsg(channel, statsline)
     elif msg[0] == "!killers":
+        num = 1
+        if len(msg) > 1 and msg[1].isnumeric() == True:
+            num = msg[1]
         scoreboard["real_nicks"][shooter_lower] = shooter
         counter = 0
         totalcounter = 0
         s = ""
         x = {k: v for k, v in sorted(scoreboard["!bang"].items(), key=lambda item: item[1], reverse=True)}
+        the_scores = score_output(x, num)
+        sendmsg(connection, channel, the_scores)
+        '''
         for p in x:
             if x[p] > 0:
                 s += inbold(scoreboard["real_nicks"][p] + ": ") + str(x[p]) + " "
@@ -373,6 +392,7 @@ def on_pubmsg(connection, event):
                     themsg = "Killers in " + channel + ": " + s
                     sendmsg(connection, channel, themsg)
                     s = ""
+       '''
     elif msg[0] == "!friends":
         scoreboard["real_nicks"][shooter_lower] = shooter
         s = ""
