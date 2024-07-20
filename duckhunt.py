@@ -359,12 +359,18 @@ def on_pubmsg(connection, event):
          connection.privmsg(channel, statsline)
     elif msg[0] == "!killers":
         scoreboard["real_nicks"][shooter_lower] = shooter
+        counter = 0
+        totalcounter = 0
         s = ""
         x = {k: v for k, v in sorted(scoreboard["!bang"].items(), key=lambda item: item[1], reverse=True)}
         for p in x:
             if x[p] > 0:
                 s += inbold(scoreboard["real_nicks"][p] + ": ") + str(x[p]) + " "
-        sendmsg(connection, channel, "Killers in " + channel + ": " + s)
+                counter += 1
+                totalcounter += 1
+                if (counter == 10 and len(x) >= 9) or totalcounter >= len(x):
+                    counter = 0
+                    sendmsg(connection, channel, "Killers in " + channel + ": " + s)
     elif msg[0] == "!friends":
         scoreboard["real_nicks"][shooter_lower] = shooter
         s = ""
