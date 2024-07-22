@@ -152,6 +152,8 @@ def load_scores():
     if os.path.getsize('duckhunt.pkl') > 0:
         with open('duckhunt.pkl', 'rb') as fp:
             scoreboard = pickle.load(fp)
+    if "real_nicks" not in scoreboard:
+        scoreboard["real_nicks"] = {}
     if "ducklines" in scoreboard:
         DUCKLINES_TARGET = scoreboard["ducklines"]
     if "MISS_CHANCE" in scoreboard:
@@ -160,12 +162,26 @@ def load_scores():
         scoreboard["!bang"] = {}
     if "!bef" not in scoreboard:
         scoreboard["!bef"] = {}
+    if "stats" not in scoreboard:
+        scoreboard["stats"] = {}
+    if "longest_duck" not in scoreboard["stats"]:
+        scoreboard["stats"]["longest_duck"] = 0
     if "!bangmissed" not in scoreboard["stats"]:
         scoreboard["stats"]["!bangmissed"] = 0
     if "!befmissed" not in scoreboard["stats"]:
         scoreboard["stats"]["!befmissed"] = 0
-    if "stats" not in scoreboard:
-        scoreboard["stats"] = {}
+    if "round_wins" not in scoreboard["stats"]:
+        scoreboard["stats"]["round_wins"] = {}
+    if "last_round_winner" not in scoreboard["stats"]:
+        scoreboard["stats"]["last_round_winner"] = "N/A"
+    if "streak" not in scoreboard["stats"]:
+        scoreboard["stats"]["streak"] = 0
+    if "longest_streak" not in scoreboard["stats"]:
+        scoreboard["stats"]["longest_streak"] = 0
+    if "longest_streak_holder" not in scoreboard["stats"]:
+        scoreboard["stats"]["longest_streak_holder"] = "N/A"
+    if "total_rounds" not in scoreboard["stats"]:
+         scoreboard["stats"]["total_rounds"] = 0
     x = ["totalmissed", "!bangmissed", "!befmissed", "total!bang", "total!bef"]
     for i in x:
         if i not in scoreboard["stats"]:
@@ -220,6 +236,25 @@ def repost_duck(con, repost_time):
         return
     con.privmsg(CHANNEL, ">ø_/ 。・゜・゜゜・。・゜゜・。QUAAAACK QUAAACK!")
     thetimers.add_timer("repost_duck", int(repost_time), repost_duck, *(con, int(repost_time)))
+
+def secs_to_dur(seconds):
+    result = ""
+    day = seconds // (24 * 3600)
+    seconds = seconds % (24 * 3600)
+    hour = seconds // 3600
+    seconds %= 3600
+    minutes = seconds // 60
+    seconds %= 60
+    seconds = seconds
+    if day > 0:
+        result += str(day) + "d "
+    if hour > 0:
+        result += str(hour) + "h "
+    if minutes > 0:
+        result += str(minutes) + "m "
+    if seconds > 0:
+        result += str(seconds) + "s "
+    return result
 
 def on_pubmsg(connection, event):
     global theresaduck
@@ -337,12 +372,48 @@ def on_pubmsg(connection, event):
             timeshot = time.time()
             theresaduck = 0
             timediff = round(timeshot - ducktime, 3)
+            saylongduck = ""
+            if timediff > scoreboard["stats"]["longest_duck"]:
+                record_diff = timediff - scoreboard["stats"]["longest_duck"]
+                saylongduck = "|| [New Record of Duck Freedom: " + secs_to_dur(timediff) + "Previous record: " + secs_to_dur(scoreboard["stats"]["longest_duck"])
+                scoreboard["stats"]["longest_duck"] = timediff
             add_score(shooter_lower, cmd, 1)
             score = scoreboard[cmd][shooter_lower]
             missed = {}
             thetimers.cancel_timer("fly_away")
             thetimers.cancel_timer("repost_duck")
-            connection.privmsg(channel, "Congrats " + shooter + " you " + word["past"] + " the duck in " + str(timediff) + " seconds! You have " + word["past"] + " " + str(score) + " ducks in " +  channel + ".")
+            connection.privmsg(channel, "Congrats " + shooter + " you " + word["past"] + " the duck in " + str(timediff) + " seconds! You have " + word["past"] + " " + str(score) + " ducks in " +  channel + ". " + saylongduck)
+            if score == RESET_SCORE:
+                scoreboard["stats"]["total_rounds"] += 1
+                thetimers.add_timer("reset_score", 5, connection.privmsg, *(channel, "\o/ CONGRATS %s! You reached the winning score of %s CONGRATS \o/" % (shooter, RESET_SCORE)))
+                thetimers.add_timer("reset_score2", 20, connection.privmsg, *(channel, inbold("ALL SCORES, have been wiped and the DuckHunt begins new!")))
+                scoreboard["!bef"] = {}
+                scoreboard["!bang"] = {}
+                if shooter_lower not in scoreboard["stats"]["round_wins"]:
+                    scoreboard["stats"]["round_wins"][shooter_lower] = 0
+                scoreboard["stats"]["round_wins"][shooter_lower] += 1
+                if scoreboard["stats"]["last_round_winner"] == shooter_lower:
+                    scoreboard["stats"]["streak"] += 1
+                    if scoreboard["stats"]["streak"] > scoreboard["stats"]["longest_streak"]:
+                        longest = scoreboard["stats"]["longest_streak"]
+                        holder = scoreboard["stats"]["longest_streak_holder"]
+                        if holder == shooter_lower:
+                            isholder = themselves
+                        else:
+                            isholder = holder
+                        streakmsg = "%s BROKE the longest streak of %s consecutive round wins! Previously held by %s! Congrats!" % (shooter, longest, isholder)
+                        thetimers.add_timer("streak_announce", 10, connection.privmsg, *(channel, streakmsg))
+                        scoreboard["stats"]["longest_streak_holder"] = shooter_lower
+                        scoreboard["stats"]["longest_streak"] += 1
+                        save_scores()
+                else:
+                    if scoreboard["stats"]["streak"] > 1:
+                        streak_diff = (scoreboard["stats"]["longest_streak"] - scoreboard["stats"]["streak"]) + 1
+                        streakmsg = "%s BROKE %s's %s round streak! %s needed %s more wins to beat the longest streak held by %s" % (shooter, scoreboard["stats"]["last_round_winner"], scoreboard["stats"]["streak"], scoreboard["stats"]["last_round_winner"], streak_diff, scoreboard["stats"]["longest_streak_holder"])
+                        thetimers.add_timer("streak_announce", 10, connection.privmsg, *(channel, streakmsg))
+                    scoreboard["stats"]["streak"] = 1
+                    scoreboard["stats"]["last_round_winner"] = shooter_lower
+                    save_scores()
         else:
             connection.privmsg(channel, "WTH " + shooter + "? There is no duck to " +  word["present"])
     if msg[0] == "!allstats":
@@ -360,7 +431,7 @@ def on_pubmsg(connection, event):
              totalmissed = 0
         else:
              totalmissed = scoreboard["stats"]["totalmissed"]
-        statsline = "%s: %s | %s: %s | %s: %s | %s: %s | %s: %s"  % (inbold("Successful shots"), scoreboard["stats"]["total!bang"], inbold("Succesful friendsips"), scoreboard["stats"]["total!bef"], inbold("Missed shots"), bangmissed, inbold("Missed friendships"), befmissed, inbold("Total missed"), totalmissed)
+        statsline = inbold("Total rounds: ") + str(scoreboard["stats"]["total_rounds"]) + inbold(" Current streak: ") + str(scoreboard["stats"]["streak"]) + " by " +  scoreboard["stats"]["last_round_winner"] + inbold(" Longest Streak: ") + str(scoreboard["stats"]["longest_streak"]) + " by " + scoreboard["stats"]["longest_streak_holder"] + inbold(" Successful shots: ") + str(scoreboard["stats"]["total!bang"]) + inbold(" Succesful friendships: ") + str(scoreboard["stats"]["total!bef"]) + inbold(" Missed shots: ") +  str(bangmissed) + inbold(" Missed friendships: ") + str(befmissed) + inbold(" Total missed: ") + str(totalmissed) + inbold(" Longest Duck Freedom: ") + str(scoreboard["stats"]["longest_duck"])
         connection.privmsg(channel, statsline)
     elif msg[0] == "!stats":
          scoreboard["real_nicks"][shooter_lower] = shooter

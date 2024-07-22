@@ -1,5 +1,5 @@
 # DuckHunt-IRC
-A simple DuckHunt IRC bot, simular to Gonzobot's but coded from scratch.
+A simple DuckHunt IRC bot, simular to Gonzobot's but coded from scratch, with more features like rounds and stats.
 
 # Dependencies
  * Python3.7 or above (probably)
@@ -33,3 +33,4 @@ A simple DuckHunt IRC bot, simular to Gonzobot's but coded from scratch.
   - You can have the duck fly away after a period of time you choose
   - Find a duck in the distance with !goggles and !snipe it 
   - The duck will requack when it's hasn't been shoot
+  - Set a score target at which the round ends, stats remain but scores are wiped, starting the game from scratch.

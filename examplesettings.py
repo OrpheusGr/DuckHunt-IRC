@@ -12,4 +12,5 @@ duckops = ["input_a_nick_here", "and_another_here", "and_so_on", "or_just_put_a_
 MISS_CHANCE = 35 # you can also change this on IRC with !misschance command and that value will be saved and used instead of this
 #also no quotes^
 FLYAWAY_TIME = 0 # 0 for no fly away, any other numerical value for the duck to fly after not been shot for
+RESET_SCORE = 0
 
