@@ -82,10 +82,8 @@ def score_output(score_dict, friendorfoe, decada=1):
     output = ""
     decada = int(decada)
     if decada == 1:
-        top = 9
-        topreal = 10
+        top = 10
         low = 0
-        lowreal = 1
         toprange = "Top10"
     else:
         top = decada * 10
@@ -96,13 +94,13 @@ def score_output(score_dict, friendorfoe, decada=1):
     make_a_list = list(score_dict)[low:top]
     while make_a_list == [] and top >= 20:
         if top == 20:
-            top = 9
-        else:
+            top = 10
+            low = 0
+        elif top > 20:
             top -= 10
         topreal = top
-        low = top - 9
         lowreal = low
-        if top == 9:
+        if top == 10:
             toprange = "Top10"
         else:
             toprange = "Top" + str(low) + "-" + str(top)
