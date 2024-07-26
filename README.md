@@ -16,12 +16,15 @@ A simple DuckHunt IRC bot, simular to Gonzobot's but coded from scratch, with mo
 - Public commands
   - !bang (shoot the duck)
   - !bef (make friends with the duck)
-  - !allstats (shows general game stats)
-  - !stats [nick] (With a parameter it shows stats for nick, without it shows stats for the sender)
+  - !allduckstats (shows general game stats)
+  - !duckstats [nick] (With a parameter it shows stats for nick, without it shows stats for the sender)
   - !ducks (shows how many ducks you killed and befriended)
   - !goggles (60% chance of locating a duck in the distance)
   - !snipe (using the directions from !goggles the player can snipe the located duck)
-
+  - !killers N
+  - !friends N
+    - N is optional - Can be a positive number. No N or 1 shows top10, 2 shows 11-20 etc etc
+  - !duckhelp cmd - Example: !duckhelp !killers shows help for !killers - If no command is given, shows list of commands.
 - Duckops commands
   - !merge somenick someothernick (Moves somenick's ducks to someothernick's ducks
   - !ducklines N  (sets the amount of lines a duck will spawn at to N lines. If no parameter is sent, it shows the current setting)

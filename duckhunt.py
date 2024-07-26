@@ -414,7 +414,22 @@ def on_pubmsg(connection, event):
                     save_scores()
         else:
             connection.privmsg(channel, "WTH " + shooter + "? There is no duck to " +  word["present"])
-    if msg[0] == "!allstats":
+    if msg[0] == "!duckhelp":
+        duckhelp = {"!bang": "Simply Shoots at the duck", "!bef": "Simply befriends the duck", "!goggles": "Lets you use the goggles for a chance to spot a duck in the distance", "!snipe": "Usage: !snipe <coords> | The coords parameter is random and is given by the duckbot after you find a distant duck with !goggles", "!duckstats": "Usage: !duckstats [user] | The user parameter is optional. If used, shows some game stats for user, if not used, stats of the sender", "!allduckstats": "Shows some general game stats", "!ducks": "Usage: !ducks [user] | Shows killed and friend ducks of [user] (if no user is given shows for sender", "!killers": "Usage: !killers N | N is an optional positive nunber, 1 shows the top 10 killers, 2 top11-20 etc", "!friends": "Usage: !friends  N | N is an optional positive nunber, 1 shows the top 10 friends, 2 top11-20 etc"}
+        if len(msg) == 1:
+            listcmds = []
+            for i in duckhelp:
+                listcmds.append(i)
+            listcmds = " ".join(listcmds)
+            connection.privmsg(channel, "Commands list: " + listcmds)
+            time.sleep(1)
+            connection.privmsg(channel, "!duckhelp <cmd> for specific command help.")
+            return
+        if msg[1] in duckhelp:
+            connection.privmsg(channel, duckhelp[msg[1]])
+        else:
+            connection.privmsg(channel, "Invalid command. Do !duckhelp for a list of commands.")
+    if msg[0] == "!allduckstats":
         scoreboard["real_nicks"][shooter_lower] = shooter
         stats = scoreboard["stats"]
         if "!bangmissed" not in stats:
@@ -431,7 +446,7 @@ def on_pubmsg(connection, event):
              totalmissed = scoreboard["stats"]["totalmissed"]
         statsline = inbold("Total rounds: ") + str(scoreboard["stats"]["total_rounds"]) + inbold(" Current streak: ") + str(scoreboard["stats"]["streak"]) + " by " +  scoreboard["stats"]["last_round_winner"] + inbold(" Longest Streak: ") + str(scoreboard["stats"]["longest_streak"]) + " by " + scoreboard["stats"]["longest_streak_holder"] + inbold(" Successful shots: ") + str(scoreboard["stats"]["total!bang"]) + inbold(" Succesful friendships: ") + str(scoreboard["stats"]["total!bef"]) + inbold(" Missed shots: ") +  str(bangmissed) + inbold(" Missed friendships: ") + str(befmissed) + inbold(" Total missed: ") + str(totalmissed) + inbold(" Longest Duck Freedom: ") + str(scoreboard["stats"]["longest_duck"])
         connection.privmsg(channel, statsline)
-    elif msg[0] == "!stats":
+    elif msg[0] == "!duckstats":
          scoreboard["real_nicks"][shooter_lower] = shooter
          stats = scoreboard["stats"]
          bang = scoreboard["!bang"]
