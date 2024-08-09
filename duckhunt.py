@@ -116,6 +116,16 @@ def sendmsg(connection, channel, msg):
         joint = msg[i][0]
         connection.privmsg(channel, joint)
 
+def remove_colors(message):
+    regexc = re.compile(chr(3) + "(\d{,2}(,\d{,2})?)?", re.UNICODE)
+    message = message.replace("\x1d", "")
+    message = message.replace(r"\x31", "")
+    message = message.replace("\x0f", "")
+    message = message.replace(chr(29), "")
+    message = message.replace(chr(2), "")
+    message = regexc.sub("", message)
+    return message
+
 def save_scores():
     global scoreboard
     with open('duckhunt.pkl', 'wb') as fp:
@@ -267,7 +277,7 @@ def on_pubmsg(connection, event):
         return
     channel = event.target
     print(event.source.nick + ":", event.arguments[0])
-    msg = event.arguments[0].split()
+    msg = remove_colors(event.arguments[0]).split()
     msg[0] = msg[0].lower()
     if theresaduck == 0 and snipe_dir == 0 and msg[0] not in ["!bang", "!bef", "!befriend", "!goggles", "!snipe", "!killers", "!friends", "!ducklines", "!ducks", "!allstats", "!misschance", "!duckdown"]:
         ducklines += 1
@@ -425,7 +435,8 @@ def on_pubmsg(connection, event):
             time.sleep(1)
             connection.privmsg(channel, "!duckhelp <cmd> for specific command help.")
             return
-        if msg[1] in duckhelp:
+        if msg[1] in duckhelp or "!" + msg[1]:
+            msg[1] = "!" + msg[1].replace("!", "")
             connection.privmsg(channel, duckhelp[msg[1]])
         else:
             connection.privmsg(channel, "Invalid command. Do !duckhelp for a list of commands.")
