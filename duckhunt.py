@@ -335,7 +335,7 @@ def on_pubmsg(connection, event):
         cooldown["snipe"] = 1
         thetimers.add_timer("snipe", 30, cooldown.pop, "snipe")
         thetimers.cancel_timer("snipe_dir")
-        if msg[1] == snipe_dir:
+        if len(msg) > 1 and msg[1] == snipe_dir:
             old_snipe = snipe_dir
             snipe_dir = 0
             shooter = event.source.nick
