@@ -273,7 +273,7 @@ def on_pubmsg(connection, event):
     global missed
     global snipe_dir
     global goggles_cooldown
-    if len(event.arguments[0].split()) == 0:
+    if len(remove_colors(event.arguments[0]).split()) == 0:
         return
     channel = event.target
     print(event.source.nick + ":", event.arguments[0])

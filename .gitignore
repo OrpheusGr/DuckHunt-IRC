@@ -2,3 +2,4 @@ __pycache__/
 manual_.py
 settings.py
 duckhunt.pkl
+test*
