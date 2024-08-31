@@ -10,6 +10,7 @@ bangmisses = [
     "ROFL! %s shot a poor turtle, this aint Mario Bros! Aim better and shoot again in 7 seconds",
     "The dog chuckles as the duck flaps around unharmed by %s's shot",
     "You call your self a duckhunter, %s? Do you know what a duck looks like? Shoot again in 7 seconds.",
-    "Hahahaha, look, everyone, %s shot a beehive, the bees are all over them"
+    "Hahahaha, look, everyone, %s shot a beehive, the bees are all over them. Let's see if they can get away from the in 7 seconds",
+    "Hehehe, %s when are you going back to target practice, you need it desperately :D Reload your weapon and try in 7 seconds"
     ]
 
