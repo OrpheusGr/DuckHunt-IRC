@@ -395,7 +395,7 @@ def on_pubmsg(connection, event):
                 scoreboard["stats"]["total_rounds"] += 1
                 thetimers.add_timer("reset_score", 5, connection.privmsg, *(channel, "\o/ CONGRATS %s! You reached the winning score of %s CONGRATS \o/" % (shooter, RESET_SCORE)))
                 thetimers.add_timer("celebrate", 6, connection.privmsg, *(channel, "CONGRATS %s CONGRATS! *.-.**!*;*:*;*!*?*!*;*;*;*!*;*;*:*:*;*;_-_-_*!*;*;*;?*!*!*;_-*+*+" % shooter))
-                thetimers.add_timer("celebrate2", 8, connection.privmsg, *(channel, "CONGRATS %s CONGRATS! *.-.**!*;*:*;*!*?*!*;*;*;*!*;*;*:*:*;*;_-_-_*!*;*;*;?*!*!*;_-*+*+" % shooter)
+                thetimers.add_timer("celebrate2", 8, connection.privmsg, *(channel, "CONGRATS %s CONGRATS! *.-.**!*;*:*;*!*?*!*;*;*;*!*;*;*:*:*;*;_-_-_*!*;*;*;?*!*!*;_-*+*+" % shooter))
                 thetimers.add_timer("reset_score2", 20, connection.privmsg, *(channel, inbold("ALL SCORES, have been wiped and the DuckHunt begins new!")))
                 scoreboard["!bef"] = {}
                 scoreboard["!bang"] = {}
