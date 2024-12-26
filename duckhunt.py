@@ -458,7 +458,7 @@ def on_pubmsg(connection, event):
              totalmissed = 0
         else:
              totalmissed = scoreboard["stats"]["totalmissed"]
-        statsline = inbold("Total rounds: ") + str(scoreboard["stats"]["total_rounds"]) + inbold(" Current streak: ") + str(scoreboard["stats"]["streak"]) + " by " +  scoreboard["stats"]["last_round_winner"] + inbold(" Longest Streak: ") + str(scoreboard["stats"]["longest_streak"]) + " by " + scoreboard["stats"]["longest_streak_holder"] + inbold(" Successful shots: ") + str(scoreboard["stats"]["total!bang"]) + inbold(" Succesful friendships: ") + str(scoreboard["stats"]["total!bef"]) + inbold(" Missed shots: ") +  str(bangmissed) + inbold(" Missed friendships: ") + str(befmissed) + inbold(" Total missed: ") + str(totalmissed) + inbold(" Longest Duck Freedom: ") + str(scoreboard["stats"]["longest_duck"])
+        statsline = inbold("Total rounds: ") + str(scoreboard["stats"]["total_rounds"]) + inbold(" Current streak: ") + str(scoreboard["stats"]["streak"]) + " by " +  scoreboard["stats"]["last_round_winner"] + inbold(" Longest Streak: ") + str(scoreboard["stats"]["longest_streak"] + 1) + " by " + scoreboard["stats"]["longest_streak_holder"] + inbold(" Successful shots: ") + str(scoreboard["stats"]["total!bang"]) + inbold(" Succesful friendships: ") + str(scoreboard["stats"]["total!bef"]) + inbold(" Missed shots: ") +  str(bangmissed) + inbold(" Missed friendships: ") + str(befmissed) + inbold(" Total missed: ") + str(totalmissed) + inbold(" Longest Duck Freedom: ") + str(scoreboard["stats"]["longest_duck"])
         connection.privmsg(channel, statsline)
     elif msg[0] == "!duckstats":
          scoreboard["real_nicks"][shooter_lower] = shooter
