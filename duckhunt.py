@@ -246,6 +246,7 @@ def repost_duck(con, repost_time):
     thetimers.add_timer("repost_duck", int(repost_time), repost_duck, *(con, int(repost_time)))
 
 def secs_to_dur(seconds):
+    seconds = round(seconds)
     result = ""
     day = seconds // (24 * 3600)
     seconds = seconds % (24 * 3600)
@@ -382,8 +383,8 @@ def on_pubmsg(connection, event):
             timediff = round(timeshot - ducktime, 3)
             saylongduck = ""
             if timediff > scoreboard["stats"]["longest_duck"]:
-                record_diff = round(timediff - scoreboard["stats"]["longest_duck"])
-                saylongduck = "|| [New Record of Duck Freedom: " + secs_to_dur(round(timediff)) + "Previous record: " + secs_to_dur(scoreboard["stats"]["longest_duck"])
+                record_diff = round(timediff - scoreboard["stats"]["longest_duck"], 0)
+                saylongduck = "|| [New Record of Duck Freedom: " + secs_to_dur(round(timediff), 0) + "Previous record: " + secs_to_dur(scoreboard["stats"]["longest_duck"])
                 scoreboard["stats"]["longest_duck"] = timediff
             add_score(shooter_lower, cmd, 1)
             score = scoreboard[cmd][shooter_lower]
