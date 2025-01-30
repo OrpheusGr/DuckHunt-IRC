@@ -411,7 +411,7 @@ def on_pubmsg(connection, event):
                         longest = scoreboard["stats"]["longest_streak"]
                         holder = scoreboard["stats"]["longest_streak_holder"]
                         if holder == shooter_lower:
-                            isholder = themselves
+                            isholder = shooter_lower
                         else:
                             isholder = holder
                         streakmsg = "%s BROKE the longest streak of %s consecutive round wins! Previously held by %s! Congrats!" % (shooter, longest, isholder)
