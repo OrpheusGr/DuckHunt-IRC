@@ -21,6 +21,8 @@ MISS_CHANCE = 0
 snipe_dir = 0
 cooldown = {}
 
+# Hello world!
+
 if os.path.isfile("duckhunt.pkl") == False:
     open("duckhunt.pkl", 'w').close()
 
