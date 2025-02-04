@@ -386,7 +386,7 @@ def on_pubmsg(connection, event):
             saylongduck = ""
             if timediff > scoreboard["stats"]["longest_duck"]:
                 record_diff = round(timediff - scoreboard["stats"]["longest_duck"], 0)
-                saylongduck = "|| [New Record of Duck Freedom: " + secs_to_dur(round(timediff), 0) + "Previous record: " + secs_to_dur(scoreboard["stats"]["longest_duck"])
+                saylongduck = "|| [New Record of Duck Freedom: " + secs_to_dur(round(timediff, 0)) + "Previous record: " + secs_to_dur(scoreboard["stats"]["longest_duck"])
                 scoreboard["stats"]["longest_duck"] = timediff
             add_score(shooter_lower, cmd, 1)
             score = scoreboard[cmd][shooter_lower]
