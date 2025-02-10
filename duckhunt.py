@@ -20,6 +20,8 @@ missed = {}
 MISS_CHANCE = 0
 snipe_dir = 0
 cooldown = {}
+last_duck = 0
+last_duck_player = ""
 
 # Hello world!
 
@@ -267,6 +269,12 @@ def secs_to_dur(seconds):
         result += str(seconds) + "s "
     return result
 
+def unset_last_duck():
+    global last_duck
+    global last_duck_player
+    last_duck = 0
+    last_duck_player = ""
+
 def on_pubmsg(connection, event):
     global theresaduck
     global ducklines
@@ -276,6 +284,8 @@ def on_pubmsg(connection, event):
     global missed
     global snipe_dir
     global goggles_cooldown
+    global last_duck
+    global last_duck_player
     if len(remove_colors(event.arguments[0]).split()) == 0:
         return
     channel = event.target
@@ -393,6 +403,9 @@ def on_pubmsg(connection, event):
             missed = {}
             thetimers.cancel_timer("fly_away")
             thetimers.cancel_timer("repost_duck")
+            last_duck = round(time.time(), 0)
+            last_duck_player = shooter_lower
+            thetimers.add_timer("unset_last_duck", 5, unset_last_duck)
             connection.privmsg(channel, "Congrats " + shooter + " you " + word["past"] + " the duck in " + str(timediff) + " seconds! You have " + word["past"] + " " + str(score) + " ducks in " +  channel + ". " + saylongduck)
             if score >= RESET_SCORE:
                 scoreboard["stats"]["total_rounds"] += 1
@@ -428,7 +441,12 @@ def on_pubmsg(connection, event):
                     scoreboard["stats"]["last_round_winner"] = shooter_lower
                     save_scores()
         else:
-            connection.privmsg(channel, "WTH " + shooter + "? There is no duck to " +  word["present"])
+            if last_duck == 0:
+                connection.privmsg(channel, "WTH " + shooter + "? There is no duck to " +  word["present"])
+            else:
+                if last_duck_player == shooter_lower:
+                    return
+                connection.privmsg(channel, "Sorry " + shooter + "! You missed by " +  str(round(time.time() - last_duck, 0)) + " Be faster next time!")
     if msg[0] == "!duckhelp":
         duckhelp = {"!bang": "Simply Shoots at the duck", "!bef": "Simply befriends the duck", "!goggles": "Lets you use the goggles for a chance to spot a duck in the distance", "!snipe": "Usage: !snipe <coords> | The coords parameter is random and is given by the duckbot after you find a distant duck with !goggles", "!duckstats": "Usage: !duckstats [user] | The user parameter is optional. If used, shows some game stats for user, if not used, stats of the sender", "!allduckstats": "Shows some general game stats", "!ducks": "Usage: !ducks [user] | Shows killed and friend ducks of [user] (if no user is given shows for sender", "!killers": "Usage: !killers N | N is an optional positive nunber, 1 shows the top 10 killers, 2 top11-20 etc", "!friends": "Usage: !friends  N | N is an optional positive nunber, 1 shows the top 10 friends, 2 top11-20 etc"}
         if len(msg) == 1:
