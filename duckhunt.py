@@ -257,6 +257,8 @@ def idleduck(con):
     global theresaduck
     global last_duck
     global time_joined
+    global spawned_idle
+    global ducklines
     if theresaduck == 1:
         thetimers.add_timer("idleduck", 1800, idleduck, con)
         return
@@ -265,14 +267,19 @@ def idleduck(con):
     else:
         last_duck_when = round(time.time(), 3) - last_duck
     if last_duck_when > 1800:
-        thetimers.add_timer("spawnidleduck", random.randint(200,900), post_duck, con)
+        if spawned_idle == 0:
+            spawned_idle = 1
+            ducklines = 0
+            thetimers.add_timer("spawnidleduck", random.randint(200,900), post_duck, con)
     thetimers.add_timer("idleduck", 1800, idleduck, con)
 
 def post_duck(con):
+    global spawned_idle
     global ducklines
     global theresaduck
     global last_duck
     global ducktime
+    spawned_idle = 1
     theresaduck = 1
     ducklines = 0
     ducktime = time.time()
