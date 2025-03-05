@@ -1,3 +1,4 @@
+
 import irc.client
 import re
 import os
@@ -470,6 +471,7 @@ def on_pubmsg(connection, event):
             thetimers.cancel_timer("repost_duck")
             last_duck = round(time.time(), 3)
             last_duck_player = shooter_lower
+            spawned_idle = 0
             thetimers.add_timer("unset_last_duck", 5, unset_last_duck)
             line = "%s %s you %s the duck in %s seconds! You have %s %s ducks in %s. %s" % (font_color("Congrats", "green"), shooter, word["past"], str(timediff), word["past"], str(score), channel, saylongduck)
             connection.privmsg(channel, line)
