@@ -23,6 +23,7 @@ cooldown = {}
 last_duck = 0
 last_duck_player = ""
 time_joined = 0
+spawned_idle = 0
 
 def font_color(text, color):
     colorlist = {"white": "00", "black": "01", "blue": "02", "green": "03", "red": "04", "darkred": "05", "purple": "06", "orange": "07", "yellow": "08", "lightgreen": "09", "turq": "10", "cyan": "11", "darkblue": "12", "pink": "13", "gray": "14", "grey": "14"}
@@ -279,7 +280,6 @@ def post_duck(con):
     global theresaduck
     global last_duck
     global ducktime
-    spawned_idle = 1
     theresaduck = 1
     ducklines = 0
     ducktime = time.time()
@@ -347,13 +347,14 @@ def on_pubmsg(connection, event):
     global goggles_cooldown
     global last_duck
     global last_duck_player
+    global spawned_idle
     if len(remove_colors(event.arguments[0]).split()) == 0:
         return
     channel = event.target
     print(event.source.nick + ":", event.arguments[0])
     msg = remove_colors(event.arguments[0]).split()
     msg[0] = msg[0].lower()
-    if theresaduck == 0 and snipe_dir == 0 and msg[0] not in ["!bang", "!bef", "!befriend", "!goggles", "!snipe", "!killers", "!friends", "!ducklines", "!ducks", "!allstats", "!misschance", "!duckdown"]:
+    if theresaduck == 0 and snipe_dir == 0 and spawned_idle == 0 and msg[0] not in ["!bang", "!bef", "!befriend", "!goggles", "!snipe", "!dart", "!killers", "!friends", "!ducklines", "!ducks", "!allduckstats", "!misschance", "!duckdown"]:
         ducklines += 1
     if ducklines >= DUCKLINES_TARGET and theresaduck != 1:
         theresaduck = 1
