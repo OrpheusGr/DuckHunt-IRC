@@ -25,7 +25,7 @@ A simple DuckHunt IRC bot, simular to Gonzobot's but coded from scratch, with mo
   - !friends N
     - N is optional - Can be a positive number. No N or 1 shows top10, 2 shows 11-20 etc etc
   - !duckhelp cmd - Example: !duckhelp !killers shows help for !killers - If no command is given, shows list of commands.
-- Duckops commands
+- Duckops commands (In private messages)
   - !merge somenick someothernick (Moves somenick's ducks to someothernick's ducks
   - !ducklines N  (sets the amount of lines a duck will spawn at to N lines. If no parameter is sent, it shows the current setting)
   - !misschance 0-100 (sets the chance of missing a shot or a.. befriending)

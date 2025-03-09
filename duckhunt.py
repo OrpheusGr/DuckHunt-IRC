@@ -1,4 +1,3 @@
-
 import irc.client
 import re
 import os
@@ -23,6 +22,7 @@ snipe_dir = 0
 cooldown = {}
 last_duck = 0
 last_duck_player = ""
+last_spawn = 0
 time_joined = 0
 spawned_idle = 0
 
@@ -257,22 +257,22 @@ def on_join(connection, event):
 
 def idleduck(con):
     global theresaduck
-    global last_duck
+    global last_spawn
     global time_joined
     global spawned_idle
     global ducklines
     if theresaduck == 1:
         thetimers.add_timer("idleduck", 1800, idleduck, con)
         return
-    if last_duck == 0:
+    if last_spawn == 0:
         last_duck_when = round(time.time(), 3) - time_joined
     else:
-        last_duck_when = round(time.time(), 3) - last_duck
+        last_duck_when = round(time.time(), 3) - last_spawn
     if last_duck_when > 1800:
         if spawned_idle == 0:
             spawned_idle = 1
             ducklines = 0
-            thetimers.add_timer("spawnidleduck", random.randint(200,900), post_duck, con)
+            thetimers.add_timer("spawnidleduck", random.randint(120,240), post_duck, con)
     thetimers.add_timer("idleduck", 1800, idleduck, con)
 
 def post_duck(con):
@@ -281,7 +281,9 @@ def post_duck(con):
     global theresaduck
     global last_duck
     global ducktime
+    global last_spawn
     theresaduck = 1
+    last_spawn = round(time.time(), 0)
     ducklines = 0
     ducktime = time.time()
     con.privmsg(CHANNEL, font_color("・゜゜", "random") + font_color("・。 ​ 。・゜゜", "random") + font_color("\_ø<​  FLAP F​LAP!", "random"))
@@ -306,8 +308,8 @@ def repost_duck(con, repost_time):
     global theresaduck
     if theresaduck == 0:
         return
-    quack = "Q" + "A"*random.randint(4,10) + "CK"
-    quack2 = "Q" + "A"*random.randint(4,10) + "CK"
+    quack = "QU" + "A"*random.randint(4,10) + "CK"
+    quack2 = "QU" + "A"*random.randint(4,10) + "CK"
     con.privmsg(CHANNEL, font_color(font_color(">ø_/ 。・゜・゜゜・。・゜゜・。 " + quack + " " + quack2, "green"), "bold"))
     thetimers.add_timer("repost_duck", int(repost_time), repost_duck, *(con, int(repost_time)))
 
@@ -358,15 +360,7 @@ def on_pubmsg(connection, event):
     if theresaduck == 0 and snipe_dir == 0 and spawned_idle == 0 and msg[0] not in ["!bang", "!bef", "!befriend", "!goggles", "!snipe", "!dart", "!killers", "!friends", "!ducklines", "!ducks", "!allduckstats", "!misschance", "!duckdown"]:
         ducklines += 1
     if ducklines >= DUCKLINES_TARGET and theresaduck != 1:
-        theresaduck = 1
-        ducklines = 0
-        ducktime = time.time()
-        connection.privmsg(channel, font_color("・゜゜・。 ​ 。・゜゜\_ø<​ FLAP F​LAP!", "random"))
-        if FLYAWAY_TIME > 0:
-            thetimers.add_timer("fly_away", FLYAWAY_TIME, fly_away, connection)
-            thetimers.add_timer("repost_duck", int((FLYAWAY_TIME+10)/6), repost_duck, *(connection, int((FLYAWAY_TIME+10)/6)))
-        else:
-            thetimers.add_timer("repost_duck", 5, repost_duck, *(connection, 5))
+        post_duck(connection)
         return
     if msg[0] == "!goggles":
         if theresaduck:
@@ -473,6 +467,8 @@ def on_pubmsg(connection, event):
             last_duck_player = shooter_lower
             spawned_idle = 0
             thetimers.add_timer("unset_last_duck", 5, unset_last_duck)
+            thetimers.cancel_timer("idleduck")
+            thetimers.add_timer("idleduck", 1800, idleduck, con)
             line = "%s %s you %s the duck in %s seconds! You have %s %s ducks in %s. %s" % (font_color("Congrats", "green"), shooter, word["past"], str(timediff), word["past"], str(score), channel, saylongduck)
             connection.privmsg(channel, line)
             #connection.privmsg(channel, "Congrats " + shooter + " you " + word["past"] + " the duck in " + str(timediff) + " seconds! You have " + word["past"] + " " + str(score) + " ducks in " +  channel + ". " + saylongduck)
@@ -641,7 +637,13 @@ def on_pubmsg(connection, event):
                 connection.privmsg(channel, whoseducks + wordduck + "n't killed or befriended any ducks in " + channel)
         else:
             connection.privmsg(channel, whoseducks + ": No such nick in my scoreboard!")
-    if event.source.nick in duckops:
+
+def on_privmsg(connection, event):
+   global MISSCHANCE
+   global DUCKLINES_TARGET
+   channel = event.source.nick
+   msg = event.arguments[0].split()
+   if event.source.nick in duckops:
         if msg[0] == "!duckdown":
             connection.quit("It was " + event.source.nick + ", he pressed the red button! Agh! *dead*")
             stoploop()
@@ -704,6 +706,7 @@ def startloop():
     reactor.add_global_handler("welcome", on_connectbot)
     reactor.add_global_handler("join", on_join)
     reactor.add_global_handler("pubmsg", on_pubmsg)
+    reactor.add_global_handler("privmsg", on_privmsg)
     reactor.add_global_handler("disconnect", on_disconnect)
     reactor.add_global_handler("nicknameinuse", on_nicknameinuse)
     global loopin
