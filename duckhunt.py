@@ -468,7 +468,7 @@ def on_pubmsg(connection, event):
             spawned_idle = 0
             thetimers.add_timer("unset_last_duck", 5, unset_last_duck)
             thetimers.cancel_timer("idleduck")
-            thetimers.add_timer("idleduck", 1800, idleduck, con)
+            thetimers.add_timer("idleduck", 1800, idleduck, connection)
             line = "%s %s you %s the duck in %s seconds! You have %s %s ducks in %s. %s" % (font_color("Congrats", "green"), shooter, word["past"], str(timediff), word["past"], str(score), channel, saylongduck)
             connection.privmsg(channel, line)
             #connection.privmsg(channel, "Congrats " + shooter + " you " + word["past"] + " the duck in " + str(timediff) + " seconds! You have " + word["past"] + " " + str(score) + " ducks in " +  channel + ". " + saylongduck)
