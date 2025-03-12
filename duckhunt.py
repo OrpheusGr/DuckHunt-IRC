@@ -132,7 +132,9 @@ def score_output(score_dict, friendorfoe, decada=1):
         make_a_list = list(score_dict)[low:top]
     for i in make_a_list:
         if score_dict[i] != 0:
-            output += inbold(scoreboard["real_nicks"][i]) + ": " + str(score_dict[i]) + " "
+            thenick = scoreboard["real_nicks"][i]
+            scramble = thenick[0] + "\u200b" + thenick[1:]
+            output += inbold(scramble) + ": " + str(score_dict[i]) + " "
     return toprange + " " + friendorfoe[1:] + " : " + output
 
 def sendmsg(connection, channel, msg):
@@ -214,7 +216,9 @@ def load_scores():
     if "longest_streak_holder" not in scoreboard["stats"]:
         scoreboard["stats"]["longest_streak_holder"] = "N/A"
     if "total_rounds" not in scoreboard["stats"]:
-         scoreboard["stats"]["total_rounds"] = 0
+        scoreboard["stats"]["total_rounds"] = 0
+    if "ignored_nicks" not in scoreboard:
+         scoreboard["ignored_nicks"] = []
     x = ["totalmissed", "!bangmissed", "!befmissed", "total!bang", "total!bef"]
     for i in x:
         if i not in scoreboard["stats"]:
@@ -339,6 +343,12 @@ def unset_last_duck():
     last_duck = 0
     last_duck_player = ""
 
+def wildcard_match(text, patterns):
+    # Convert wildcard patterns to regex
+    regex_patterns = [re.compile(pattern.replace("*", ".*")) for pattern in patterns]
+    # Check if any regex pattern matches the text
+    return any(regex.fullmatch(text) for regex in regex_patterns)
+
 def on_pubmsg(connection, event):
     global theresaduck
     global ducklines
@@ -357,6 +367,8 @@ def on_pubmsg(connection, event):
     print(event.source.nick + ":", event.arguments[0])
     msg = remove_colors(event.arguments[0]).split()
     msg[0] = msg[0].lower()
+    if wildcard_match(event.source.nick, scoreboard["ignored_nicks"]) == True:
+        return
     if theresaduck == 0 and snipe_dir == 0 and spawned_idle == 0 and msg[0] not in ["!bang", "!bef", "!befriend", "!goggles", "!snipe", "!dart", "!killers", "!friends", "!ducklines", "!ducks", "!allduckstats", "!misschance", "!duckdown"]:
         ducklines += 1
     if ducklines >= DUCKLINES_TARGET and theresaduck != 1:
@@ -641,9 +653,18 @@ def on_pubmsg(connection, event):
 def on_privmsg(connection, event):
    global MISSCHANCE
    global DUCKLINES_TARGET
-   channel = event.source.nick
+   channel = event.source.nick #it's the nick that messaged us but we change it to event.source.nick so that we dont change every one of these command if's
    msg = event.arguments[0].split()
    if event.source.nick in duckops:
+        if msg[0] == "!ignore":
+            if len(msg) == 1:
+                connection.privmsg(channel, "USAGE: !ignore nick OR !ignore *nick OR !ignore nick* etc")
+                return
+            scoreboard["ignored_nicks"].append(msg[1])
+            save_scores()
+            connection.privmsg(channel, "Added %s in ignored nicks" % msg[1])
+        if msg[0] == "!ignored_nicks":
+            connection.privmsg(channel, " ".join(scoreboard["ignored_nicks"]))
         if msg[0] == "!duckdown":
             connection.quit("It was " + event.source.nick + ", he pressed the red button! Agh! *dead*")
             stoploop()
