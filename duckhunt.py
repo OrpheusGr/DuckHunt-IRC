@@ -384,10 +384,10 @@ def on_pubmsg(connection, event):
                 connection.privmsg(CHANNEL, "The goggles can only be used so often.. because... BECAUSE I SAID SO! HAH! wait a bit and use it again.")
             return
         cooldown["goggles"] = 1
-        thetimers.add_timer("goggles_cooldown", 30, cooldown.pop, "goggles")
+        thetimers.add_timer("goggles_cooldown", random.randint(300,500), cooldown.pop, "goggles")
         givegoggles = random.randint(1,100)
         connection.privmsg(CHANNEL, "You look through the goggles, trying to locate a duck...")
-        if givegoggles > 60:
+        if givegoggles > 75:
             NORTH_SOUTH = ["N", "S"]
             dir = NORTH_SOUTH[random.randint(0,1)]
             WEST_EAST = ["W", "E"]
