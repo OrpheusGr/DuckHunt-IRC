@@ -387,7 +387,7 @@ def on_pubmsg(connection, event):
         thetimers.add_timer("goggles_cooldown", random.randint(300,500), cooldown.pop, "goggles")
         givegoggles = random.randint(1,100)
         connection.privmsg(CHANNEL, "You look through the goggles, trying to locate a duck...")
-        if givegoggles > 75:
+        if givegoggles > 55:
             NORTH_SOUTH = ["N", "S"]
             dir = NORTH_SOUTH[random.randint(0,1)]
             WEST_EAST = ["W", "E"]
@@ -594,7 +594,11 @@ def on_pubmsg(connection, event):
               nickbefed = 0
          else:
               nickbefed = scoreboard["!bef"][nick]
-         statsline = "%s stats: %s: %s | %s: %s | %s: %s | %s: %s" % (nick, inbold("Successful shots"), nickbanged, inbold("Successful friendships"), nickbefed, inbold("Missed shots"), nickbangmissed, inbold("Missed friendships"), nickbefmissed)
+         if nick not in stats["round_wins"]:
+              round_wins = 0
+         else:
+              round_wins = stats["round_wins"][nick]
+         statsline = "%s stats: %s: %s | %s: %s | %s: %s | %s: %s | %s: %s" % (nick, inbold("Round Wins"), round_wins, inbold("Successful shots"), nickbanged, inbold("Successful friendships"), nickbefed, inbold("Missed shots"), nickbangmissed, inbold("Missed friendships"), nickbefmissed)
          connection.privmsg(channel, statsline)
     elif msg[0] == "!killers":
         num = 1
