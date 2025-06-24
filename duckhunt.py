@@ -307,6 +307,7 @@ def fly_away(con):
     if snipe_dir:
         snipe_dir = 0
     con.privmsg(CHANNEL, font_color("The duck flew away to another channel...", "red") + "  ・゜゜・。 ​ 。・゜゜\_ø<​ FLAP flap ....lap")
+    thetimers.add_timer("idleduck2", 1800, idleduck, con)
 
 def repost_duck(con, repost_time):
     global theresaduck
@@ -463,6 +464,12 @@ def on_pubmsg(connection, event):
                 save_scores()
                 return
             timeshot = time.time()
+            next_rand_duck_target_chance = random.randint(1,100)
+            next_rand_duck_target_decinc = random.randint(20,50)
+            if next_rand_duck_target_chance <= 50:
+                DUCKLINES_TARGET += next_rand_duck_target_decinc
+            else:
+                DUCKLINES_TARGET -= next_rand_duck_target_decinc
             theresaduck = 0
             timediff = round(timeshot - ducktime, 3)
             saylongduck = ""
