@@ -307,6 +307,7 @@ def fly_away(con):
     if snipe_dir:
         snipe_dir = 0
     con.privmsg(CHANNEL, font_color("The duck flew away to another channel...", "red") + "  ・゜゜・。 ​ 。・゜゜\_ø<​ FLAP flap ....lap")
+    thetimers.cancel_timer("idleduck2")
     thetimers.add_timer("idleduck2", 1800, idleduck, con)
 
 def repost_duck(con, repost_time):
