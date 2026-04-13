@@ -38,6 +38,6 @@ def cancel_timer(name):
         #print("canceling timer " + name)
         #print(timers)
     else:
-        raise Exception("No timer with name " + name + " found.")
+        print("No timer with name " + name + " found.")
 
 

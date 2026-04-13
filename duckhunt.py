@@ -391,7 +391,7 @@ def post_duck(con):
     ducklines = 0
     ducktime = time.time()
     if type(ALIAS_FLAP) == str:
-        on.privmsg(CHANNEL, fALIAS_FLAP)
+        con.privmsg(CHANNEL, ALIAS_FLAP)
     elif type(ALIAS_FLAP) == list:
         con.privmsg(CHANNEL, "\U0001F986" * 2 + " " + ALIAS_FLAP[random.randint(0,len(ALIAS_FLAP)-1)])
     if FLYAWAY_TIME > 0:
