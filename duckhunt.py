@@ -6,7 +6,10 @@ import pickle
 import random
 from settings import *
 from responses import *
+from theme import *
 import thetimers
+connection_gl = None
+default_ducklines_target = DUCKLINES_TARGET
 reactor = irc.client.Reactor()
 irc.client.ServerConnection.buffer_class.encoding = "UTF-8"
 irc.client.ServerConnection.buffer_class.errors = "replace"
@@ -25,6 +28,7 @@ last_duck_player = ""
 last_spawn = 0
 time_joined = 0
 spawned_idle = 0
+round_end = 0
 
 def font_color(text, color):
     colorlist = {"white": "00", "black": "01", "blue": "02", "green": "03", "red": "04", "darkred": "05", "purple": "06", "orange": "07", "yellow": "08", "lightgreen": "09", "turq": "10", "cyan": "11", "darkblue": "12", "pink": "13", "gray": "14", "grey": "14"}
@@ -52,22 +56,29 @@ if os.path.isfile("duckhunt.pkl") == False:
 scoreboard["stats"] = {}
 if "!bang" not in scoreboard:
     scoreboard["!bang"] = {}
+if "~teamtotalscore~" not in scoreboard["!bang"]:
+    scoreboard["!bang"]["~teamtotalscore~"] = 0
 if "!bef" not in scoreboard:
     scoreboard["!bef"] = {}
+if "~teamtotalscore~" not in scoreboard["!bef"]:
+    scoreboard["!bef"]["~teamtotalscore~"] = 0
 if "!bangmissed" not in scoreboard["stats"]:
     scoreboard["stats"]["!bangmissed"] = 0
 if "!befmissed" not in scoreboard["stats"]:
     scoreboard["stats"]["!befmissed"] = 0
+if "real_nicks" not in scoreboard:
+    scoreboard["real_nicks"] = {}
+scoreboard["real_nicks"]["~teamtotalscore~"] = "~teamtotalscore~"
 
 def stoploop():
     global loopin
     loopin = 0
 
-def get_word(cmd):
+def get_tm_name(cmd):
     if cmd == "!bang":
-        return {"present": "shoot", "past": "shot"}
+        return ALIAS_KILLERS
     else:
-        return {"present": "befriend", "past": "befriended"}
+        return ALIAS_FRIENDS
 
 def random_response(cmd, shooter):
     if cmd == "!bang":
@@ -75,7 +86,7 @@ def random_response(cmd, shooter):
     else:
         cmdresponse = befmisses
     cmdlen = len(cmdresponse) - 1
-    picked_response = cmdresponse[random.randint(0,cmdlen)] % (shooter)
+    picked_response = cmdresponse[random.randint(0,cmdlen)]
     return picked_response
 
 def split_msg(msg, max_chars):
@@ -135,13 +146,25 @@ def score_output(score_dict, friendorfoe, decada=1):
             thenick = scoreboard["real_nicks"][i]
             scramble = thenick[0] + "\u200b" + thenick[1:]
             output += inbold(scramble) + ": " + str(score_dict[i]) + " "
-    return toprange + " " + friendorfoe[1:] + " : " + output
+    return toprange + " " + friendorfoe[1:] + ": " + output
 
-def sendmsg(connection, channel, msg):
+def sendmsg(channel, msg):
+    global connection_gl
     msg = split_msg(msg, 470)
     for i in range(len(msg)):
         joint = msg[i][0]
-        connection.privmsg(channel, joint)
+        joint = joint.replace("duck", ALIAS_DUCK)
+        joint = joint.replace("ducks", ALIAS_DUCKS)
+        joint = joint.replace("shots", ALIAS_SHOTS)
+        joint = joint.replace("friendships", ALIAS_FRIENDSHIPS)
+        joint = joint.replace("befriend", ALIAS_BEF_WORD_PRESENT)
+        joint = joint.replace("befriended", ALIAS_BEF_WORD_PAST)
+        joint = joint.replace("shoot", ALIAS_BANG_WORD_PRESENT)
+        joint = joint.replace("shot", ALIAS_BANG_WORD_PAST)
+        joint = joint.replace("killers", ALIAS_KILLERS)
+        joint = joint.replace("friends", ALIAS_FRIENDS)
+        joint + joint.replace("goggles", ALIAS_GOGGLES_WORD)
+        connection_gl.privmsg(channel, joint)
 
 def remove_colors(message):
     regexc = re.compile(chr(3) + "(\d{,2}(,\d{,2})?)?", re.UNICODE)
@@ -158,18 +181,85 @@ def save_scores():
     with open('duckhunt.pkl', 'wb') as fp:
         pickle.dump(scoreboard, fp)
 
-def add_score(shooter, cmd, score):
+def set_round_end(num):
+    global round_end
+    round_end = 0
+
+def add_score(shooter, cmd, score, snipeordart=False, word=None):
     global scoreboard
-    shooter = shooter.lower()
-    if shooter not in scoreboard["!bang"]:
-        scoreboard["!bang"][shooter] = 0
-    if shooter not in scoreboard["!bef"]:
-        scoreboard["!bef"][shooter] = 0
+    global round_end
+    shooter_lower = shooter.lower()
+    if shooter_lower not in scoreboard["!bang"]:
+        scoreboard["!bang"][shooter_lower] = 0
+    if shooter_lower not in scoreboard["!bef"]:
+        scoreboard["!bef"][shooter_lower] = 0
     totalcmd = "total" + cmd
     if not totalcmd in scoreboard["stats"]:
          scoreboard["stats"][totalcmd] = 0
     scoreboard["stats"][totalcmd] += 1
-    scoreboard[cmd][shooter] += score
+    scoreboard[cmd][shooter_lower] += score
+    tm_score = "~teamtotalscore~"
+    scoreboard[cmd][tm_score] += score
+    new_pl_score = scoreboard[cmd][shooter_lower]
+    new_tm_score = scoreboard[cmd][tm_score]
+    tm_name = get_tm_name(cmd)
+    if cmd == "!bang":
+        output_trig = "!killers"
+    else:
+        output_trig = "!friends"
+    if snipeordart == True:
+        line = "%s %s! %s Score: %s - You have %s %s ducks in %s." % (font_color("Congrats, ", "green"), shooter, tm_name, new_tm_score, word["past"], str(new_pl_score), CHANNEL)
+        sendmsg(CHANNEL, line)
+    # round end stuff
+    if new_tm_score >= RESET_SCORE:
+        round_end = 1
+        scoreboard["stats"]["total_rounds"] += 1
+        thetimers.add_timer("reset_score", 5, sendmsg, *(CHANNEL, "\o/ CONGRATS %s! The %s reached the winning score of %s CONGRATS \o/" % (shooter, tm_name, RESET_SCORE)))
+        thetimers.add_timer("celebrate", 6, sendmsg, *(CHANNEL, "CONGRATS %s CONGRATS! *.-.**!*;*:*;*!*?*!*;*;*;*!*;*;*:*:*;*;_-_-_*!*;*;*;?*!*!*;_-*+*+" % tm_name))
+        thetimers.add_timer("celebrate2", 7, sendmsg, *(CHANNEL, "CONGRATS %s CONGRATS! *.-.**!*;*:*;*!*?*!*;*;*;*!*;*;*:*:*;*;_-_-_*!*;*;*;?*!*!*;_-*+*+" % tm_name))
+        thetimers.add_timer("celebrate3", 9, sendmsg, *(CHANNEL, "CONGRATS %s CONGRATS! *.-.**!*;*:*;*!*?*!*;*;*;*!*;*;*:*:*;*;_-_-_*!*;*;*;?*!*!*;_-*+*+" % tm_name))
+        thetimers.add_timer("celebrate4", 10, sendmsg, *(CHANNEL, "CONGRATS %s CONGRATS! *.-.**!*;*:*;*!*?*!*;*;*;*!*;*;*:*:*;*;_-_-_*!*;*;*;?*!*!*;_-*+*+" % tm_name))
+        calctop10 = {k: v for k, v in sorted(((k, v) for k, v in scoreboard[cmd].items() if k != tm_score), key=lambda item: item[1], reverse=True)}
+        top10 = score_output(calctop10, output_trig, 1)
+        thetimers.add_timer("celebrate5", 12, sendmsg, *(CHANNEL, "%s " % top10))
+        thetimers.add_timer("reset_score2", 20, sendmsg, *(CHANNEL, inbold("ALL SCORES, have been wiped and the DuckHunt restarts in 10 seconds!")))
+        thetimers.add_timer("set_round_end", 30, set_round_end, 0)
+        scoreboard["!bef"] = {}
+        scoreboard["!bang"] = {}
+        scoreboard["!bang"][tm_score] = 0
+        scoreboard["!bef"][tm_score] = 0
+        bangshootermissed = "!bang" + shooter_lower + "missed"
+        befshootermissed = "!bef" + shooter_lower + "missed"
+        if bangshootermissed in scoreboard["stats"]:
+            scoreboard["stats"][bangshootermissed] = 0
+        if befshootermissed in scoreboard["stats"]:
+            scoreboard["stats"][befshootermissed] = 0
+        if cmd  not in scoreboard["stats"]["round_wins"]:
+            scoreboard["stats"]["round_wins"][cmd] = 0
+        scoreboard["stats"]["round_wins"][cmd] += 1
+        if scoreboard["stats"]["last_round_winner"] == cmd:
+            scoreboard["stats"]["streak"] += 1
+            if scoreboard["stats"]["streak"] > scoreboard["stats"]["longest_streak"]:
+                longest = scoreboard["stats"]["longest_streak"]
+                holder = scoreboard["stats"]["longest_streak_holder"]
+                if holder == cmd:
+                    isholder = cmd
+                else:
+                    isholder = holder
+                streakmsg = "%s BROKE the longest streak of %s for %s consecutive round wins! Previously held by %s! Congrats!" % (shooter, longest, tm_name, isholder)
+                thetimers.add_timer("streak_announce", 10, sendmsg, *(CHANNEL, streakmsg))
+                scoreboard["stats"]["longest_streak_holder"] = cmd
+                scoreboard["stats"]["longest_streak"] += 1
+                save_scores()
+        else:
+            if scoreboard["stats"]["streak"] > 1:
+                streak_diff = (scoreboard["stats"]["longest_streak"] - scoreboard["stats"]["streak"]) + 1
+                opp_team = get_tm_name(scoreboard["stats"]["last_round_winner"])
+                streakmsg = "%s BROKE %s round streak by %s! %s needed %s more wins to beat the longest streak held by %s" % (tm_name, scoreboard["stats"]["streak"], opp_team, opp_team, streak_diff, get_tm_name(scoreboard["stats"]["longest_streak_holder"]))
+                thetimers.add_timer("streak_announce", 10, sendmsg, *(CHANNEL, streakmsg))
+            scoreboard["stats"]["streak"] = 1
+            scoreboard["stats"]["last_round_winner"] = cmd
+            #save_scores()
     save_scores()
 
 def del_score(player):
@@ -183,14 +273,18 @@ def del_score(player):
 def load_scores():
     global scoreboard
     global DUCKLINES_TARGET
+    global default_ducklines_target
     global MISS_CHANCE
     if os.path.getsize('duckhunt.pkl') > 0:
         with open('duckhunt.pkl', 'rb') as fp:
             scoreboard = pickle.load(fp)
     if "real_nicks" not in scoreboard:
         scoreboard["real_nicks"] = {}
+    scoreboard["real_nicks"]["~teamtotalscore~"] = "~teamtotalscore~"
     if "ducklines" in scoreboard:
         DUCKLINES_TARGET = scoreboard["ducklines"]
+        default_ducklines_target = DUCKLINES_TARGET
+        print("DUCKLINES_TARGET:", DUCKLINES_TARGET)
     if "MISS_CHANCE" in scoreboard:
         MISS_CHANCE = scoreboard["MISS_CHANCE"]
     if "!bang" not in scoreboard:
@@ -219,6 +313,10 @@ def load_scores():
         scoreboard["stats"]["total_rounds"] = 0
     if "ignored_nicks" not in scoreboard:
          scoreboard["ignored_nicks"] = []
+    if "~teamtotalscore~" not in scoreboard["!bang"]:
+        scoreboard["!bang"]["~teamtotalscore~"] = 0
+    if "~teamtotalscore~" not in scoreboard["!bef"]:
+        scoreboard["!bef"]["~teamtotalscore~"] = 0
     x = ["totalmissed", "!bangmissed", "!befmissed", "total!bang", "total!bef"]
     for i in x:
         if i not in scoreboard["stats"]:
@@ -232,6 +330,8 @@ def inbold(s):
     return "\x02" + s + "\x02"
 
 def on_connectbot(connection, event):
+    global connection_gl
+    connection_gl = connection
     identify_cmd = ""
     print("Connection successfull")
     if NICKSERV_IDENTIFY == True:
@@ -256,7 +356,7 @@ def on_join(connection, event):
         print("Joined", event.target)
         time_joined = round(time.time(), 3)
         if event.target == CHANNEL:
-            connection.privmsg(event.target, font_color(font_color("The DuckHunt Begins!", "green"), "bold"))
+            sendmsg(event.target, font_color(font_color("The duckHunt Begins!", "green"), "bold"))
             thetimers.add_timer("idleduck", 1800, idleduck, connection)
 
 def idleduck(con):
@@ -272,7 +372,7 @@ def idleduck(con):
         last_duck_when = round(time.time(), 3) - time_joined
     else:
         last_duck_when = round(time.time(), 3) - last_spawn
-    if last_duck_when > 1800:
+    if last_duck_when > 3600:
         if spawned_idle == 0:
             spawned_idle = 1
             ducklines = 0
@@ -290,7 +390,10 @@ def post_duck(con):
     last_spawn = round(time.time(), 0)
     ducklines = 0
     ducktime = time.time()
-    con.privmsg(CHANNEL, font_color("・゜゜", "random") + font_color("・。 ​ 。・゜゜", "random") + font_color("\_ø<​  FLAP F​LAP!", "random"))
+    if type(ALIAS_FLAP) == str:
+        on.privmsg(CHANNEL, fALIAS_FLAP)
+    elif type(ALIAS_FLAP) == list:
+        con.privmsg(CHANNEL, "\U0001F986" * 2 + " " + ALIAS_FLAP[random.randint(0,len(ALIAS_FLAP)-1)])
     if FLYAWAY_TIME > 0:
         thetimers.add_timer("fly_away", FLYAWAY_TIME, fly_away, con)
         thetimers.add_timer("repost_duck", int((FLYAWAY_TIME+10)/6), repost_duck, *(con, int((FLYAWAY_TIME+10)/6)))
@@ -306,7 +409,7 @@ def fly_away(con):
         ducktime = 0
     if snipe_dir:
         snipe_dir = 0
-    con.privmsg(CHANNEL, font_color("The duck flew away to another channel...", "red") + "  ・゜゜・。 ​ 。・゜゜\_ø<​ FLAP flap ....lap")
+    con.privmsg(CHANNEL, ALIAS_FLY_AWAY_MSG)
     thetimers.cancel_timer("idleduck2")
     thetimers.add_timer("idleduck2", 1800, idleduck, con)
 
@@ -314,9 +417,7 @@ def repost_duck(con, repost_time):
     global theresaduck
     if theresaduck == 0:
         return
-    quack = "QU" + "A"*random.randint(4,10) + "CK"
-    quack2 = "QU" + "A"*random.randint(4,10) + "CK"
-    con.privmsg(CHANNEL, font_color(font_color(">ø_/ 。・゜・゜゜・。・゜゜・。 " + quack + " " + quack2, "green"), "bold"))
+    con.privmsg(CHANNEL, font_color(font_color(ALIAS_REPOST, "red"), "bold"))
     thetimers.add_timer("repost_duck", int(repost_time), repost_duck, *(con, int(repost_time)))
 
 def secs_to_dur(seconds):
@@ -351,6 +452,7 @@ def wildcard_match(text, patterns):
     # Check if any regex pattern matches the text
     return any(regex.fullmatch(text) for regex in regex_patterns)
 
+
 def on_pubmsg(connection, event):
     global theresaduck
     global ducklines
@@ -363,33 +465,35 @@ def on_pubmsg(connection, event):
     global last_duck
     global last_duck_player
     global spawned_idle
+    global default_ducklines_target
+    global round_end
     if len(remove_colors(event.arguments[0]).split()) == 0:
         return
     channel = event.target
-    print(event.source.nick + ":", event.arguments[0])
+    #print(event.source.nick + ":", event.arguments[0])
     msg = remove_colors(event.arguments[0]).split()
     msg[0] = msg[0].lower()
     if wildcard_match(event.source.nick, scoreboard["ignored_nicks"]) == True:
         return
-    if theresaduck == 0 and snipe_dir == 0 and spawned_idle == 0 and msg[0] not in ["!bang", "!bef", "!befriend", "!goggles", "!snipe", "!dart", "!killers", "!friends", "!ducklines", "!ducks", "!allduckstats", "!misschance", "!duckdown"]:
+    if round_end == 0 and theresaduck == 0 and snipe_dir == 0 and spawned_idle == 0 and msg[0] not in ["!bang", "!bef", "!befriend", "!goggles", "!snipe", "!dart", "!killers", "!friends", "!ducklines", "!ducks", "!allduckstats", "!misschance", "!duckdown"]:
         ducklines += 1
     if ducklines >= DUCKLINES_TARGET and theresaduck != 1:
         post_duck(connection)
         return
-    if msg[0] == "!goggles":
+    if msg[0] == "!goggles" or msg[0] == ALIAS_GOGGLES:
         if theresaduck:
-            connection.privmsg(CHANNEL, "What do you need the goggles for? There's a duck " + font_color(font_color("RIGHT HERE!", "red"), "bold") + "---> 。・゜゜\_ø<​ *QUAAAAACK QUACKQUACK*")
+            sendmsg(CHANNEL, "What do you need the goggles for? There's a duck " + font_color(font_color("RIGHT HERE!", "red"), "bold"))
             return
         if "goggles" in cooldown and cooldown["goggles"] > 0:
             if cooldown["goggles"] == 1:
                 cooldown["goggles"] += 1
-                connection.privmsg(CHANNEL, "The goggles can only be used so often.. because... BECAUSE I SAID SO! HAH! wait a bit and use it again.")
+                sendmsg(CHANNEL, "The goggles can only be done so often.. because... BECAUSE I SAID SO! HAH! wait a bit and use it again.")
             return
         cooldown["goggles"] = 1
-        thetimers.add_timer("goggles_cooldown", random.randint(300,500), cooldown.pop, "goggles")
+        thetimers.add_timer("goggles_cooldown", random.randint(1000,3600), cooldown.pop, "goggles")
         givegoggles = random.randint(1,100)
-        connection.privmsg(CHANNEL, "You look through the goggles, trying to locate a duck...")
-        if givegoggles > 55:
+        sendmsg(CHANNEL, ALIAS_GOGGLES_ATTEMPT_REPLY)
+        if givegoggles > 45:
             NORTH_SOUTH = ["N", "S"]
             dir = NORTH_SOUTH[random.randint(0,1)]
             WEST_EAST = ["W", "E"]
@@ -398,21 +502,21 @@ def on_pubmsg(connection, event):
             random_dist = random.randint(140,300)
             snipe_dir = true_dir + str(random_dist)
             time.sleep(2)
-            line = "...and you see a Duck... Type %s %s%s to shoot OR %s %s%s to befriend the duck!" % (font_color("!snipe ", "red"), true_dir, str(random_dist), font_color("!dart ", "green"), true_dir, str(random_dist))
-            connection.privmsg(CHANNEL, line)
+            line = ALIAS_GOGGLES_SUCCESS_REPLY + " Type %s %s%s to shoot OR %s %s%s to befriend the duck!" % (font_color("!snipe ", "red"), true_dir, str(random_dist), font_color("!dart ", "green"), true_dir, str(random_dist))
+            sendmsg(CHANNEL, line)
             thetimers.add_timer("snipe_dir", 25, fly_away, connection)
         else:
             time.sleep(2)
-            connection.privmsg(CHANNEL, font_color("...but the fog is too ", "red") + font_color(font_color("thick", "bold"), "red") + font_color(" , you can't see much...", "red"))
+            sendmsg(CHANNEL, ALIAS_GOGGLES_FAIL_REPLY)
     if msg[0] == "!snipe" or msg[0] == "!dart":
         if snipe_dir == 0:
             if "snipe" in cooldown and cooldown["snipe"] > 0:
                 if cooldown["snipe"] == 1:
                     cooldown["snipe"] += 1
                     if theresaduck:
-                        connection.privmsg(CHANNEL, "Why are you trying to use the ▄︻デ══━一 sniper for a duck right next to you?? Type !bang or !befriend")
+                        sendmsg(CHANNEL, "Why are you trying to use the ▄︻デ══━一 sniper for a duck right next to you?? Type !bang or !befriend")
                     else:
-                        connection.privmsg(CHANNEL, "Yeah.. waste sniper bullets for no reason! You need to look through the goggles first!!!")
+                        sendmsg(CHANNEL, "Yeah.. waste sniper bullets for no reason! You need to look through the goggles first!!!")
             return
         cooldown["snipe"] = 1
         thetimers.add_timer("snipe", 30, cooldown.pop, "snipe")
@@ -428,15 +532,26 @@ def on_pubmsg(connection, event):
             elif msg[0] == "!dart":
                 word = get_word("!bef")
                 cmd = "!bef"
-            add_score(shooter_lower, cmd, 1)
-            score = scoreboard[cmd][shooter_lower]
-            line = "%s %s! You %s %s the duck at %s and %sft away! You have %s %s ducks in %s." % (font_color("Congrats, ", "green"), shooter, font_color(" ▄︻デ══━一 ", "random"), word["past"],  old_snipe[0:1], old_snipe[2:], word["past"], str(score), channel)
-            connection.privmsg(CHANNEL, line)
+            add_score(shooter_lower, cmd, 1, True, word)
         else:
             snipe_dir = 0
-            connection.privmsg(CHANNEL, font_color("FAIL!", "red") + " You missed the duck and it got scared away!")
+            sendmsg(CHANNEL, font_color("FAIL!", "red") + " You missed the duck and it got scared away!")
+    if msg[0] == ALIAS_CMD_KILLERS:
+        msg[0] = "!killers"
+    if msg[0] == ALIAS_CMD_FRIENDS:
+        msg[0] = "!friends"
+    if msg[0] == ALIAS_BANG:
+        msg[0] = "!bang"
+    if msg[0] == ALIAS_BEF:
+        msg[0] = "!bef"
+    if msg[0] == ALIAS_DUCKSTATS:
+        msg[0] = "!duckstats"
+    if msg[0] == ALIAS_ALLDUCKSTATS:
+        msg[0] = "!allduckstats"
+
     if msg[0] == "!befriend":
         msg[0] = "!bef"
+
     bangbef = ["!bang", "!bef"]
     conds = [msg[0] == "!bang", msg[0] == "!bef"]
     shooter = event.source.nick
@@ -454,7 +569,7 @@ def on_pubmsg(connection, event):
             rand = random.randrange(1,100)
             if rand < MISS_CHANCE and shooter_lower not in missed:
                 response = random_response(msg[0], shooter)
-                connection.privmsg(channel, font_color("MISS!  ", "red") + response)
+                sendmsg(channel, font_color("MISS!  ", "red") + response)
                 missed[shooter_lower] = round(time.time(),0)
                 scoreboard["stats"][cmd + "missed"] += 1
                 scoreboard["stats"]["totalmissed"] += 1
@@ -465,20 +580,24 @@ def on_pubmsg(connection, event):
                 save_scores()
                 return
             timeshot = time.time()
+            DUCKLINES_TARGET = default_ducklines_target
+            #print("Reseting ducklines to", DUCKLINES_TARGET)
             next_rand_duck_target_chance = random.randint(1,100)
-            next_rand_duck_target_decinc = random.randint(20,50)
+            next_rand_duck_target_decinc = random.randint(20,35)
             if next_rand_duck_target_chance <= 50:
                 DUCKLINES_TARGET += next_rand_duck_target_decinc
             else:
                 DUCKLINES_TARGET -= next_rand_duck_target_decinc
+            #print("new random ducklines:", DUCKLINES_TARGET)
             theresaduck = 0
             timediff = round(timeshot - ducktime, 3)
             saylongduck = ""
             if timediff > scoreboard["stats"]["longest_duck"]:
                 record_diff = round(timediff - scoreboard["stats"]["longest_duck"], 0)
-                saylongduck = "|| [New Record of Duck Freedom: " + secs_to_dur(round(timediff, 0)) + "Previous record: " + secs_to_dur(scoreboard["stats"]["longest_duck"])
+                saylongduck = "|| [New Record of duck Freedom: " + secs_to_dur(round(timediff, 0)) + "Previous record: " + secs_to_dur(scoreboard["stats"]["longest_duck"])
                 scoreboard["stats"]["longest_duck"] = timediff
-            add_score(shooter_lower, cmd, 1)
+            if shooter_lower not in scoreboard[cmd]:
+                scoreboard[cmd][shooter_lower] = 0
             score = scoreboard[cmd][shooter_lower]
             missed = {}
             thetimers.cancel_timer("fly_away")
@@ -489,59 +608,24 @@ def on_pubmsg(connection, event):
             thetimers.add_timer("unset_last_duck", 5, unset_last_duck)
             thetimers.cancel_timer("idleduck")
             thetimers.add_timer("idleduck", 1800, idleduck, connection)
-            line = "%s %s you %s the duck in %s seconds! You have %s %s ducks in %s. %s" % (font_color("Congrats", "green"), shooter, word["past"], str(timediff), word["past"], str(score), channel, saylongduck)
-            connection.privmsg(channel, line)
-            #connection.privmsg(channel, "Congrats " + shooter + " you " + word["past"] + " the duck in " + str(timediff) + " seconds! You have " + word["past"] + " " + str(score) + " ducks in " +  channel + ". " + saylongduck)
-            if score >= RESET_SCORE:
-                scoreboard["stats"]["total_rounds"] += 1
-                thetimers.add_timer("reset_score", 5, connection.privmsg, *(channel, "\o/ CONGRATS %s! You reached the winning score of %s CONGRATS \o/" % (shooter, RESET_SCORE)))
-                '''
-                f = open("celebrate.txt", "r")
-                for i in range(0,9):
-                    connection.privmsg(channel, f.readline().strip("\r").strip("\n").replace(" ", "\x03" + "00,00" + ".").replace("|", "\x0f."))
-                f = open("celebrate2.txt", "r")
-                for i in range(0,9):
-                    connection.privmsg(channel, f.readline().strip("\r").strip("\n").replace(" ", "\x03" + "00,00" + ".").replace("|", "\x0f."))
-                '''
-                thetimers.add_timer("celebrate", 6, connection.privmsg, *(channel, "CONGRATS %s CONGRATS! *.-.**!*;*:*;*!*?*!*;*;*;*!*;*;*:*:*;*;_-_-_*!*;*;*;?*!*!*;_-*+*+" % shooter))
-                thetimers.add_timer("celebrate2", 7, connection.privmsg, *(channel, "CONGRATS %s CONGRATS! *.-.**!*;*:*;*!*?*!*;*;*;*!*;*;*:*:*;*;_-_-_*!*;*;*;?*!*!*;_-*+*+" % shooter))
-                thetimers.add_timer("celebrate3", 9, connection.privmsg, *(channel, "CONGRATS %s CONGRATS! *.-.**!*;*:*;*!*?*!*;*;*;*!*;*;*:*:*;*;_-_-_*!*;*;*;?*!*!*;_-*+*+" % shooter))
-                thetimers.add_timer("celebrate4", 10, connection.privmsg, *(channel, "CONGRATS %s CONGRATS! *.-.**!*;*:*;*!*?*!*;*;*;*!*;*;*:*:*;*;_-_-_*!*;*;*;?*!*!*;_-*+*+" % shooter))
-                thetimers.add_timer("reset_score2", 20, connection.privmsg, *(channel, inbold("ALL SCORES, have been wiped and the DuckHunt begins new!")))
-                scoreboard["!bef"] = {}
-                scoreboard["!bang"] = {}
-                if shooter_lower not in scoreboard["stats"]["round_wins"]:
-                    scoreboard["stats"]["round_wins"][shooter_lower] = 0
-                scoreboard["stats"]["round_wins"][shooter_lower] += 1
-                if scoreboard["stats"]["last_round_winner"] == shooter_lower:
-                    scoreboard["stats"]["streak"] += 1
-                    if scoreboard["stats"]["streak"] > scoreboard["stats"]["longest_streak"]:
-                        longest = scoreboard["stats"]["longest_streak"]
-                        holder = scoreboard["stats"]["longest_streak_holder"]
-                        if holder == shooter_lower:
-                            isholder = shooter_lower
-                        else:
-                            isholder = holder
-                        streakmsg = "%s BROKE the longest streak of %s consecutive round wins! Previously held by %s! Congrats!" % (shooter, longest, isholder)
-                        thetimers.add_timer("streak_announce", 10, connection.privmsg, *(channel, streakmsg))
-                        scoreboard["stats"]["longest_streak_holder"] = shooter_lower
-                        scoreboard["stats"]["longest_streak"] += 1
-                        save_scores()
-                else:
-                    if scoreboard["stats"]["streak"] > 1:
-                        streak_diff = (scoreboard["stats"]["longest_streak"] - scoreboard["stats"]["streak"]) + 1
-                        streakmsg = "%s BROKE %s's %s round streak! %s needed %s more wins to beat the longest streak held by %s" % (shooter, scoreboard["stats"]["last_round_winner"], scoreboard["stats"]["streak"], scoreboard["stats"]["last_round_winner"], streak_diff, scoreboard["stats"]["longest_streak_holder"])
-                        thetimers.add_timer("streak_announce", 10, connection.privmsg, *(channel, streakmsg))
-                    scoreboard["stats"]["streak"] = 1
-                    scoreboard["stats"]["last_round_winner"] = shooter_lower
-                    save_scores()
+            tm_name = get_tm_name(cmd)
+            new_tm_score = scoreboard[cmd]["~teamtotalscore~"] + 1
+            line = "%s %s you %s the duck in %s seconds! | %s Score: %s | You have %s %s ducks. %s" % (font_color("Congrats", "green"), shooter, word["past"], str(timediff), tm_name, new_tm_score, word["past"], str(score+1), saylongduck)
+            sendmsg(channel, line)
+            add_score(shooter_lower, cmd, 1, False, word)
+
+
         else:
             if last_duck == 0:
-                connection.privmsg(channel, "WTH " + shooter + "? There is no duck to " +  word["present"])
+                sendmsg(channel, "WTH " + shooter + "? There is no duck to " +  word["present"])
             else:
                 if last_duck_player == shooter_lower:
                     return
-                connection.privmsg(channel, "Sorry " + shooter + "! You missed by " +  str(round(time.time() - last_duck, 3)) + " seconds!  Be faster next time!")
+                missed_by_diff = time.time() - last_duck
+                round_by = 3
+                if missed_by_diff < 0.0001:
+                    round_by = 6
+                sendmsg(channel, "Sorry " + shooter + "! You missed by " +  str(round(missed_by_diff, round_by)) + " seconds!  Be faster next time!")
     if msg[0] == "!duckhelp":
         duckhelp = {"!bang": "Simply Shoots at the duck", "!bef": "Simply befriends the duck", "!goggles": "Lets you use the goggles for a chance to spot a duck in the distance", "!snipe": "Usage: !snipe <coords> | The coords parameter is random and is given by the duckbot after you find a distant duck with !goggles", "!duckstats": "Usage: !duckstats [user] | The user parameter is optional. If used, shows some game stats for user, if not used, stats of the sender", "!allduckstats": "Shows some general game stats", "!ducks": "Usage: !ducks [user] | Shows killed and friend ducks of [user] (if no user is given shows for sender", "!killers": "Usage: !killers N | N is an optional positive nunber, 1 shows the top 10 killers, 2 top11-20 etc", "!friends": "Usage: !friends  N | N is an optional positive nunber, 1 shows the top 10 friends, 2 top11-20 etc"}
         if len(msg) == 1:
@@ -549,15 +633,15 @@ def on_pubmsg(connection, event):
             for i in duckhelp:
                 listcmds.append(i)
             listcmds = " ".join(listcmds)
-            connection.privmsg(channel, "Commands list: " + listcmds)
+            sendmsg(channel, "Commands list: " + listcmds)
             time.sleep(1)
-            connection.privmsg(channel, "!duckhelp <cmd> for specific command help.")
+            sendmsg(channel, "!duckhelp <cmd> for specific command help.")
             return
         if msg[1] in duckhelp or "!" + msg[1] in duckhelp:
             msg[1] = "!" + msg[1].replace("!", "")
-            connection.privmsg(channel, duckhelp[msg[1]])
+            sendmsg(channel, duckhelp[msg[1]])
         else:
-            connection.privmsg(channel, "Invalid command. Do !duckhelp for a list of commands.")
+            sendmsg(channel, "Invalid command. Do !duckhelp for a list of commands.")
     if msg[0] == "!allduckstats":
         scoreboard["real_nicks"][shooter_lower] = shooter
         stats = scoreboard["stats"]
@@ -573,8 +657,8 @@ def on_pubmsg(connection, event):
              totalmissed = 0
         else:
              totalmissed = scoreboard["stats"]["totalmissed"]
-        statsline = inbold("Total rounds: ") + str(scoreboard["stats"]["total_rounds"]) + inbold(" Current streak: ") + str(scoreboard["stats"]["streak"]) + " by " +  scoreboard["stats"]["last_round_winner"] + inbold(" Longest Streak: ") + str(scoreboard["stats"]["longest_streak"] + 1) + " by " + scoreboard["stats"]["longest_streak_holder"] + inbold(" Successful shots: ") + str(scoreboard["stats"]["total!bang"]) + inbold(" Succesful friendships: ") + str(scoreboard["stats"]["total!bef"]) + inbold(" Missed shots: ") +  str(bangmissed) + inbold(" Missed friendships: ") + str(befmissed) + inbold(" Total missed: ") + str(totalmissed) + inbold(" Longest Duck Freedom: ") + str(scoreboard["stats"]["longest_duck"])
-        connection.privmsg(channel, statsline)
+        statsline = inbold("Total rounds: ") + str(scoreboard["stats"]["total_rounds"]) + inbold(" Current streak: ") + str(scoreboard["stats"]["streak"]) + " by " +  get_tm_name(scoreboard["stats"]["last_round_winner"]) + inbold(" Longest Streak: ") + str(scoreboard["stats"]["longest_streak"] + 1) + " by " + get_tm_name(scoreboard["stats"]["longest_streak_holder"]) + inbold(" Successful shots: ") + str(scoreboard["stats"]["total!bang"]) + inbold(" Succesful friendships: ") + str(scoreboard["stats"]["total!bef"]) + inbold(" Missed shots: ") +  str(bangmissed) + inbold(" Missed friendships: ") + str(befmissed) + inbold(" Total missed: ") + str(totalmissed) + inbold(" Longest duck Freedom: ") + str(scoreboard["stats"]["longest_duck"])
+        sendmsg(channel, statsline)
     elif msg[0] == "!duckstats":
          scoreboard["real_nicks"][shooter_lower] = shooter
          stats = scoreboard["stats"]
@@ -606,16 +690,20 @@ def on_pubmsg(connection, event):
               round_wins = 0
          else:
               round_wins = stats["round_wins"][nick]
-         statsline = "%s stats: %s: %s | %s: %s | %s: %s | %s: %s | %s: %s" % (nick, inbold("Round Wins"), round_wins, inbold("Successful shots"), nickbanged, inbold("Successful friendships"), nickbefed, inbold("Missed shots"), nickbangmissed, inbold("Missed friendships"), nickbefmissed)
-         connection.privmsg(channel, statsline)
+         statsline = "%s stats: %s: %s | %s: %s | %s: %s | %s: %s" % (nick, round_wins, inbold("Successful shots"), nickbanged, inbold("Successful friendships"), nickbefed, inbold("Missed shots"), nickbangmissed, inbold("Missed friendships"), nickbefmissed)
+         sendmsg(channel, statsline)
+    elif msg[0] == "!teams":
+         sendmsg(channel, "Killers: %s" % scoreboard["!bang"]["~teamtotalscore~"])
+         sendmsg(channel, "Friends: %s" % scoreboard["!bef"]["~teamtotalscore~"])
     elif msg[0] == "!killers":
         num = 1
         if len(msg) > 1 and msg[1].isnumeric() == True:
             num = msg[1]
         scoreboard["real_nicks"][shooter_lower] = shooter
-        x = {k: v for k, v in sorted(scoreboard["!bang"].items(), key=lambda item: item[1], reverse=True)}
+        "~teamtotalscore~"
+        x = {k: v for k, v in sorted(((k, v) for k, v in scoreboard["!bang"].items() if k != "~teamtotalscore~"), key=lambda item: item[1], reverse=True)}
         the_scores = score_output(x, msg[0], num)
-        sendmsg(connection, channel, the_scores)
+        sendmsg(channel, the_scores)
         '''
         for p in x:
             if x[p] > 0:
@@ -625,7 +713,7 @@ def on_pubmsg(connection, event):
                 if (counter == 10 and len(x) >= 9) or totalcounter >= len(x):
                     counter = 0
                     themsg = "Killers in " + channel + ": " + s
-                    sendmsg(connection, channel, themsg)
+                    sendmsg(channel, themsg)
                     s = ""
        '''
     elif msg[0] == "!friends":
@@ -633,14 +721,14 @@ def on_pubmsg(connection, event):
         if len(msg) > 1 and msg[1].isnumeric() == True:
             num = msg[1]
         scoreboard["real_nicks"][shooter_lower] = shooter
-        x = {k: v for k, v in sorted(scoreboard["!bef"].items(), key=lambda item: item[1], reverse=True)}
+        x = {k: v for k, v in sorted(((k, v) for k, v in scoreboard["!bef"].items() if k != "~teamtotalscore~"), key=lambda item: item[1], reverse=True)}
         the_scores = score_output(x, msg[0], num)
-        sendmsg(connection, channel, the_scores)
+        sendmsg(channel, the_scores)
         '''
         for p in x:
             if x[p] > 0:
                 s += inbold(scoreboard["real_nicks"][p] + ": ") + str(x[p]) + " "
-        sendmsg(connection, channel, "Friends in " + channel + ": " + s)
+        sendmsg(channel, "Friends in " + channel + ": " + s)
         '''
     elif msg[0] == "!ducks":
         scoreboard["real_nicks"][shooter_lower] = shooter
@@ -656,14 +744,14 @@ def on_pubmsg(connection, event):
             killed = scoreboard["!bang"][whoseducks_lower]
             friended = scoreboard["!bef"][whoseducks_lower]
             if killed > 0 or friended > 0:
-                connection.privmsg(channel, whoseducks + wordduck + " killed " + str(killed) + " and befriended " + str(friended) + " ducks in " + channel)
+                sendmsg(channel, whoseducks + wordduck + " killed " + str(killed) + " and befriended " + str(friended) + " ducks in " + channel)
             else:
-                connection.privmsg(channel, whoseducks + wordduck + "n't killed or befriended any ducks in " + channel)
+                sendmsg(channel, whoseducks + wordduck + "n't killed or befriended any ducks in " + channel)
         else:
-            connection.privmsg(channel, whoseducks + ": No such nick in my scoreboard!")
+            sendmsg(channel, whoseducks + ": No such nick in my scoreboard!")
 
 def on_privmsg(connection, event):
-   global MISSCHANCE
+   global MISS_CHANCE
    global DUCKLINES_TARGET
    channel = event.source.nick #it's the nick that messaged us but we change it to event.source.nick so that we dont change every one of these command if's
    msg = event.arguments[0].split()
@@ -687,6 +775,10 @@ def on_privmsg(connection, event):
             if msg[1].isnumeric() == False:
                 connection.privmsg(channel, "I need a number, dummy.")
                 return
+            LIMIT = 1
+            if int(msg[1]) <= LIMIT:
+                connection.privmsg(channel, "Sorry that's too little, bud, pick something higher than %s." % LIMIT)
+                return
             DUCKLINES_TARGET = int(msg[1])
             scoreboard["ducklines"] = DUCKLINES_TARGET
             save_scores()
@@ -703,10 +795,11 @@ def on_privmsg(connection, event):
                 scoreboard["real_nicks"][nickmergefrom] = msg[1]
                 scoreboard["real_nicks"][nickmergeto] = msg[2]
                 tomovebang = scoreboard["!bang"][nickmergefrom]
-                add_score(nickmergeto, "!bang", tomovebang)
-                tomovebef = scoreboard["!bef"][nickmergefrom]
-                add_score(nickmergeto, "!bef", tomovebef)
-                del_score(nickmergefrom)
+                add_score(nickmergeto, "!bang", tomovebang, False)
+                if nickmergefrom in scoreboard["!bef"]:
+                    tomovebef = scoreboard["!bef"][nickmergefrom]
+                    add_score(nickmergeto, "!bef", tomovebef, False)
+                    del_score(nickmergefrom)
                 connection.privmsg(channel, "Moved " + str(tomovebang) + " dead ducks and " + str(tomovebef) + " befriended ducks from " + msg[1] + " to " + msg[2])
             else:
                 connection.privmsg(channel, msg[1] + ": No such nick in my scoreboard.")
