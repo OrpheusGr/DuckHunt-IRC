@@ -2,11 +2,11 @@
 A simple DuckHunt IRC bot, inspired by Gonzobot's but coded from scratch, with more features like rounds, stats, themes  and team based scores.
 
 # Latest Updates
-I have added a bunch of stuff over a period of probably 1 year but i hadn't pushed the changes untill i finished some stuff, so i may be forgetting all the new stuff i added:
-- New score system, based on teams. The scores of individual players are still kept but they no longer matter for the round win. Instead one of the 2 teams wins the round. Meaning your score also goes into a team pool score and when the score is reached by X team, X team wins.
-- New command to see team scores: !teams
-- Themes, edit the themes.py according to instructions in the file. What this does is it lets you change the game theme. i.e you can change the team names and the commands
-- I'm probably forgetting something as i said above. kthxbye
+See changelog for previous updates.
+
+- Added SSL
+- Added ON/OFF setting for randomized duck lines target (you'll have to add SSL = True/False and RANDOM_DUCKLINES = True/False in your settings files.)
+- In the future i might change settings.py to a settings.json so i can make the code add new settings on start
 
 # Dependencies
  * Python3.7 or above (probably)
@@ -31,6 +31,7 @@ I have added a bunch of stuff over a period of probably 1 year but i hadn't push
   - !killers N
   - !friends N
     - N is optional - Can be a positive number. No N or 1 shows top10, 2 shows 11-20 etc etc
+  - !teams (shows the score of both teams)
   - !duckhelp cmd - Example: !duckhelp !killers shows help for !killers - If no command is given, shows list of commands.
 - Duckops commands (In private messages)
   - !merge somenick someothernick (Moves somenick's ducks to someothernick's ducks

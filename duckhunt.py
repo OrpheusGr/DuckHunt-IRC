@@ -4,6 +4,8 @@ import os
 import time
 import pickle
 import random
+import ssl
+import functools
 from settings import *
 from responses import *
 from theme import *
@@ -398,7 +400,7 @@ def post_duck(con):
         thetimers.add_timer("fly_away", FLYAWAY_TIME, fly_away, con)
         thetimers.add_timer("repost_duck", int((FLYAWAY_TIME+10)/6), repost_duck, *(con, int((FLYAWAY_TIME+10)/6)))
     else:
-        thetimers.add_timer("repost_duck", 5, repost_duck, *(con, 5))
+        thetimers.add_timer("repost_duck", 1800, repost_duck, *(con, 5))
 
 def fly_away(con):
     global theresaduck
@@ -580,14 +582,15 @@ def on_pubmsg(connection, event):
                 save_scores()
                 return
             timeshot = time.time()
-            DUCKLINES_TARGET = default_ducklines_target
-            #print("Reseting ducklines to", DUCKLINES_TARGET)
-            next_rand_duck_target_chance = random.randint(1,100)
-            next_rand_duck_target_decinc = random.randint(20,35)
-            if next_rand_duck_target_chance <= 50:
-                DUCKLINES_TARGET += next_rand_duck_target_decinc
-            else:
-                DUCKLINES_TARGET -= next_rand_duck_target_decinc
+            if RANDOM_DUCKLINES == True:
+                DUCKLINES_TARGET = default_ducklines_target
+                #print("Reseting ducklines to", DUCKLINES_TARGET)
+                next_rand_duck_target_chance = random.randint(1,100)
+                next_rand_duck_target_decinc = random.randint(20,35)
+                if next_rand_duck_target_chance <= 50:
+                    DUCKLINES_TARGET += next_rand_duck_target_decinc
+                else:
+                    DUCKLINES_TARGET -= next_rand_duck_target_decinc
             #print("new random ducklines:", DUCKLINES_TARGET)
             theresaduck = 0
             timediff = round(timeshot - ducktime, 3)
@@ -825,7 +828,12 @@ def startloop():
     start_time = int(time.time())
     load_scores()
     try:
-        con = reactor.server().connect(SERVER, PORT, NICK, None, "Quack", "Kill the ducks")
+        context = ssl.create_default_context()
+        wrapper = functools.partial(context.wrap_socket, server_hostname=SERVER)
+        if SSL == True:
+            con = reactor.server().connect(SERVER, PORT, NICK, None, "Quack", "Kill the ducks", connect_factory=irc.connection.Factory(wrapper=wrapper))
+        else:
+            con = reactor.server().connect(SERVER, PORT, NICK, None, "Quack", "Kill the ducks")
     except irc.client.ServerConnectionError:
         print(irc.client.ServerConnectionError)
         return

@@ -19,7 +19,7 @@ def check_timers():
 def add_timer(name, delay, target, *arguments):
     global timers
     if name in timers:
-        raise Exception("a timer with this name: " + name + "  already exists")
+        print("a timer with this name: " + name + "  already exists")
         return
     currtime = time.time()
     if name == "":
